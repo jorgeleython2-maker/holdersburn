@@ -1,72 +1,97 @@
-const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
+// app.js — REINTENTOS AGRESIVOS + TOKEN DEL DEV (NOV 2025)
 const DEV_WALLET = "HtRMq7DGzHdcuJAXtijCBhLTRAGxxo11BoMSk99Y9jEm";
-
+let tokenInfo = null;
 let countdown = 300;
+let intentosDeteccion = 0;
 
-// Mostrar wallet del dev fija
-document.getElementById("devWalletDisplay").innerHTML = 
-  `Dev Wallet: <strong>${DEV_WALLET.slice(0,6)}...${DEV_WALLET.slice(-4)}</strong>`;
-
-// Actualizar todo desde spin.py
-async function updateAll() {
+// === DETECTAR TOKEN CON REINTENTOS AGRESIVOS ===
+async function detectarToken() {
   try {
-    // Token + logo
-    const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-    if (token.name && token.name !== "Detectando...") {
-      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
-      document.title = `${token.name} • Burn to Win`;
-      document.getElementById("tokenLogo").src = token.image;
+    console.log(`Intento ${intentosDeteccion + 1}... (esperando indexación pump.fun)`);
+    const r = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${DEV_WALLET}?offset=0&limit=10&includeNsfw=false`);
+    const data = await r.json();
+    console.log("Respuesta API:", data);  // Abre F12 para ver logs
+
+    if (data.coins && data.coins.length > 0) {
+      const coin = data.coins[data.coins.length - 1];  // El más reciente
+      tokenInfo = {
+        name: coin.name,
+        symbol: coin.symbol,
+        mint: coin.mint,
+        image: coin.image_uri || "https://i.ibb.co.com/0jZ6g3f/fire.png"
+      };
+
+      // Cambiar "Detecting token..." por el token real
+      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${tokenInfo.symbol}`;
+      document.title = `${tokenInfo.name} • Burn to Win`;
+      document.getElementById("tokenLogo").src = tokenInfo.image;
+
+      console.log("TOKEN DETECTADO:", tokenInfo);
+      alert(`¡Token del dev detectado! ${tokenInfo.name} ($${tokenInfo.symbol})`);
+      return true;
+    } else {
+      console.log("No token encontrado, reintentando en 15s...");
+      intentosDeteccion++;
+      if (intentosDeteccion < 20) {  // Max 5 min
+        setTimeout(detectarToken, 15000);  // Reintenta en 15s (más agresivo)
+      }
     }
-
-    // Jackpot
-    const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
-    document.getElementById("jackpot").innerText = jackpot.jackpot.toFixed(4);
-
-    // Holders
-    const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
-    document.getElementById("burnList").innerHTML = holders.holders.length > 0 
-      ? holders.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
-      : "<div class='burn-entry'>No holders yet...</div>";
-
-    // Ganadores
-    const winners = await (await fetch(`${BACKEND_URL}/api/winners`)).json();
-    document.getElementById("winnerList").innerHTML = winners.winners.length > 0
-      ? winners.winners.map(w => `<div class="winner-entry">GANADOR ${w.wallet} — ${w.prize} | ${w.tokens} tokens | ${w.time}</div>`).join("")
-      : "<div class='winner-entry'>Primer ganador pronto...</div>";
-
   } catch (e) {
-    console.log("Backend no responde aún... reintentando");
+    console.error("Error detección:", e);
+    intentosDeteccion++;
+    if (intentosDeteccion < 20) setTimeout(detectarToken, 15000);
   }
+  return false;
 }
 
-// Timer local
+// === JACKPOT EN VIVO ===
+async function updateJackpot() {
+  try {
+    const resp = await fetch("https://api.mainnet-beta.solana.com", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: 1, method: "getBalance", params: [DEV_WALLET]
+      })
+    });
+    const data = await resp.json();
+    const sol = (data.result.value / 1e9).toFixed(4);
+    document.getElementById("jackpot").innerText = sol;
+    console.log("Jackpot actualizado:", sol + " SOL");
+  } catch (e) { console.error("Error jackpot:", e); }
+}
+
+// === TIMER 5 MIN ===
 setInterval(() => {
   countdown--;
   if (countdown <= 0) countdown = 300;
-  const m = String(Math.floor(countdown/60)).padStart(2,"0");
-  const s = String(countdown%60).padStart(2,"0");
+  const m = String(Math.floor(countdown / 60)).padStart(2, "0");
+  const s = String(countdown % 60).padStart(2, "0");
   document.getElementById("timer").innerText = `${m}:${s}`;
 }, 1000);
 
-// Actualizar cada 8 segundos
-setInterval(updateAll, 8000);
-updateAll();
-
-// Phantom
+// === CONEXIÓN PHANTOM ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("Instala Phantom!");
   try {
-    await window.solana.connect();
-    const wallet = window.solana.publicKey.toString();
-    document.getElementById("connectWallet").innerText = wallet.slice(0,6)+"..."+wallet.slice(-4);
-  } catch { }
+    const resp = await window.solana.connect();
+    const wallet = resp.publicKey.toString();
+    document.getElementById("connectWallet").innerText = wallet.slice(0,6) + "..." + wallet.slice(-4);
+    console.log("PHANTOM CONECTADO:", wallet);
+  } catch (e) { alert("Cancelado"); }
 };
 
-// Modal
+// === INICIAR ===
+detectarToken();  // Primera detección
+setInterval(detectarToken, 15000);  // Reintenta cada 15s
+setInterval(updateJackpot, 10000);  // Jackpot cada 10s
+updateJackpot();  // Primera carga
+
+// Partículas y modal
+if (typeof particlesJS === 'function') {
+  particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" }, move: { speed: 4 } } });
+}
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
-// Partículas
-if (typeof particlesJS === 'function') {
-  particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" } } });
-}
+console.log("PÁGINA INICIADA – Reintentos agresivos para token del dev...");
