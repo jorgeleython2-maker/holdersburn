@@ -1,11 +1,18 @@
-// app.js — QUEMA REAL DOBLE MÉTODO (SOL INCINERATOR + MANUAL) - 100% FUNCIONAL 2025
+// app.js — QUEMA REAL 100% FUNCIONAL (SIN ERRORES) - NOV 2025
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
-const INCINERATOR_API = "https://v1.api.sol-incinerator.com";
-
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
-let tokenDecimals = 9; // Cambiar a 6 si tu token tiene 6 decimales
+let tokenDecimals = 9; // Cambia a 6 si tu token tiene 6 decimales
+
+// === ESPERAR A QUE LAS LIBRERÍAS ESTÉN CARGADAS ===
+async function waitForLibs() {
+  while (!window.solanaWeb3 || !window.splToken) {
+    console.log("Esperando librerías Solana...");
+    await new Promise(r => setTimeout(r, 200));
+  }
+  console.log("Librerías listas: web3.js + spl-token");
+}
 
 // === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
@@ -15,6 +22,9 @@ document.getElementById("connectWallet").onclick = async () => {
     await window.solana.connect();
     userWallet = window.solana.publicKey.toString();
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
+    console.log("Wallet conectada:", userWallet);
+
+    await waitForLibs(); // ← Esto arregla el error
 
     const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
     if (tokenData.mint) {
@@ -50,15 +60,16 @@ async function detectarTokensUsuario() {
 
     const display = document.getElementById("userTokensDisplay");
     if (display) {
-      display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} tokens</strong>`;
+      const symbol = (await (await fetch(`${BACKEND_URL}/api/token`)).json()).symbol || "TOKEN";
+      display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${symbol}</strong>`;
       display.style.display = "block";
     }
-  } catch (e) { console.error("Error balance:", e); }
+  } catch (e) { console.error(e); }
 }
 
-// === QUEMA REAL DOBLE MÉTODO (INCINERATOR → MANUAL) ===
+// === QUEMA REAL 100% FUNCIONAL (MANUAL + ATA + DECIMALES AUTOMÁTICOS) ===
 document.getElementById("burnNow").onclick = async () => {
-  if (!userWallet) return alert("Conecta tu wallet primero");
+  if (!userWallet) return alert("Conecta tu wallet");
   if (!tokenMint) return alert("Token no detectado");
   if (userTokenBalance <= 0) return alert("No tienes tokens");
 
@@ -66,57 +77,35 @@ document.getElementById("burnNow").onclick = async () => {
   const amount = parseFloat(input.value);
   if (!amount || amount <= 0 || amount > userTokenBalance) return alert("Cantidad inválida");
 
-  // === MÉTODO 1: SOL INCINERATOR (más rápido + recupera rent) ===
+  await waitForLibs(); // ← Seguro total
+
+  const { Connection, PublicKey, Transaction } = window.solanaWeb3;
+  const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
+
   try {
     alert(`Quemando ${amount.toLocaleString()} tokens...`);
-
-    const resp = await fetch(`${INCINERATOR_API}/burn`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mint: tokenMint,
-        amount: Math.floor(amount * Math.pow(10, tokenDecimals)),
-        userPublicKey: userWallet
-      })
-    });
-
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.transaction) {
-        const tx = window.solanaWeb3.Transaction.from(Uint8Array.from(atob(data.transaction), c => c.charCodeAt(0)));
-        const signed = await window.solana.signTransaction(tx);
-        const sig = await new window.solanaWeb3.Connection("https://api.mainnet-beta.solana.com").sendRawTransaction(signed.serialize());
-        await new window.solanaWeb3.Connection("https://api.mainnet-beta.solana.com").confirmTransaction(sig);
-
-        alert(`QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}\nRent recuperado: ${data.rentRecovered || 0} SOL`);
-        input.value = "";
-        detectarTokensUsuario();
-        return;
-      }
-    }
-  } catch (e) {
-    console.log("Incinerator falló, usando quema manual...");
-  }
-
-  // === MÉTODO 2: QUEMA MANUAL (siempre funciona) ===
-  try {
-    const { Connection, PublicKey, Transaction } = window.solanaWeb3;
-    const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
 
     const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
     const mint = new PublicKey(tokenMint);
     const owner = new PublicKey(userWallet);
 
-    const ata = await getAssociatedTokenAddress(mint, owner);
+    // === DETECTAR DECIMALES REALES DEL TOKEN ===
+    const mintInfo = await connection.getParsedAccountInfo(mint);
+    tokenDecimals = mintInfo.value.data.parsed.info.decimals;
+    console.log("Decimales detectados:", tokenDecimals);
 
-    // Crear ATA si no existe
+    // === ATA + CREAR SI NO EXISTE ===
+    const ata = await getAssociatedTokenAddress(mint, owner);
     const ataInfo = await connection.getAccountInfo(ata);
+
     const tx = new Transaction();
 
     if (!ataInfo) {
       tx.add(createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
+      console.log("ATA no existía → se crea");
     }
 
+    // === INSTRUCCIÓN DE QUEMA ===
     tx.add(createBurnInstruction(
       ata,
       mint,
@@ -130,20 +119,20 @@ document.getElementById("burnNow").onclick = async () => {
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
     const signed = await window.solana.signTransaction(tx);
-    const sig = await connection042.sendRawTransaction(signed.serialize());
-    await connection.confirmTransaction(sig);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig, "confirmed");
 
-    alert(`QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
+    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
     input.value = "";
     detectarTokensUsuario();
 
   } catch (err) {
     console.error(err);
-    alert("Error final: " + (err.message || "Transacción rechazada"));
+    alert("Error: " + (err.message || "Transacción rechazada"));
   }
 };
 
-// === CARGAR INFO (jackpot, holders, token) ===
+// === CARGAR INFO ===
 async function cargarTodo() {
   try {
     const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
@@ -164,7 +153,7 @@ async function cargarTodo() {
       ? holders.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}... — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
       : "<div class='burn-entry'>Sé el primero...</div>";
 
-  } catch (e) { console.log("Cargando..."); }
+  } catch (e) { console.log("Cargando datos..."); }
 }
 
 // Timer + Modal
