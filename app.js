@@ -1,15 +1,19 @@
-// app.js — 100% AUTOMÁTICO CON TU WALLET (NOV 2025)
+// app.js — DETECCIÓN AUTOMÁTICA CON REINTENTOS (NOV 2025)
 const DEV_WALLET = "HtRMq7DGzHdcuJAXtijCBhLTRAGxxo11BoMSk99Y9jEm";
 let tokenInfo = null;
 let countdown = 300;
+let intentosDeteccion = 0;
 
-// === DETECCIÓN AUTOMÁTICA DEL TOKEN ===
+// === DETECTAR TOKEN CON REINTENTOS ===
 async function detectarToken() {
   try {
-    const r = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${DEV_WALLET}?limit=1`);
+    console.log(`Intento de detección ${intentosDeteccion + 1}...`);
+    const r = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${DEV_WALLET}?offset=0&limit=10&includeNsfw=false`);
     const data = await r.json();
+    console.log("Respuesta API:", data);  // Debug: abre F12 para ver
+
     if (data.coins && data.coins.length > 0) {
-      const coin = data.coins[data.coins.length - 1]; // el más reciente
+      const coin = data.coins[data.coins.length - 1];  // El más reciente (tu sdgsdg)
       tokenInfo = {
         name: coin.name,
         symbol: coin.symbol,
@@ -19,20 +23,33 @@ async function detectarToken() {
 
       // Actualizar página
       document.getElementById("tokenName").innerHTML = `Welcome to burn • $${tokenInfo.symbol}`;
-      document.getElementById("pageTitle").innerText = `${tokenInfo.name} • Burn to Win`;
+      document.title = `${tokenInfo.name} • Burn to Win`;
       document.getElementById("tokenLogo").src = tokenInfo.image;
 
-      console.log("TOKEN DETECTADO:", tokenInfo.name, "$${tokenInfo.symbol}");
+      console.log("TOKEN DETECTADO:", tokenInfo);
+      alert(`¡Token detectado! ${tokenInfo.name} ($${tokenInfo.symbol})`);
+      return true;
+    } else {
+      console.log("No token encontrado, reintentando...");
+      intentosDeteccion++;
+      if (intentosDeteccion < 10) {  // Max 5 min
+        setTimeout(detectarToken, 30000);  // Reintenta en 30s
+      }
     }
-  } catch (e) { console.log("Reintentando detección..."); }
+  } catch (e) {
+    console.error("Error detección:", e);
+    intentosDeteccion++;
+    if (intentosDeteccion < 10) setTimeout(detectarToken, 30000);
+  }
+  return false;
 }
 
-// === JACKPOT EN VIVO (balance de tu wallet) ===
+// === JACKPOT EN VIVO ===
 async function updateJackpot() {
   try {
-    const resp = await fetch(`https://api.mainnet-beta.solana.com`, {
+    const resp = await fetch("https://api.mainnet-beta.solana.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
         jsonrpc: "2.0", id: 1, method: "getBalance", params: [DEV_WALLET]
       })
@@ -40,7 +57,8 @@ async function updateJackpot() {
     const data = await resp.json();
     const sol = (data.result.value / 1e9).toFixed(4);
     document.getElementById("jackpot").innerText = sol;
-  } catch (e) {}
+    console.log("Jackpot actualizado:", sol + " SOL");
+  } catch (e) { console.error("Error jackpot:", e); }
 }
 
 // === TIMER 5 MIN ===
@@ -53,13 +71,16 @@ setInterval(() => {
 }, 1000);
 
 // === INICIAR TODO ===
-detectarToken();
-setInterval(detectarToken, 30000); // reintenta cada 30s
-setInterval(updateJackpot, 10000);
-updateJackpot();
+detectarToken();  // Primera detección
+setInterval(updateJackpot, 10000);  // Cada 10s
+updateJackpot();  // Primera carga
 
 // Partículas y modal (tu código original)
-particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" }, move: { speed: 4 } } });
-
+if (typeof particlesJS === 'function') {
+  particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" }, move: { speed: 4 } } });
+}
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
+
+// Debug: Abre F12 para ver logs
+console.log("PÁGINA INICIADA – Detección en progreso...");
