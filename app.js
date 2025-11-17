@@ -1,9 +1,10 @@
-// app.js — DETECCIÓN AUTOMÁTICA DE TOKENS DEL DEV AL CONECTAR WALLET
+// app.js — QUEMA REAL 100% FUNCIONAL + DETECCIÓN DE TOKENS (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
 let userWallet = null;
-let tokenMint = null; // Se llena con el mint del token del dev
+let tokenMint = null;
+let userTokenBalance = 0;
 
-// === CONECTAR PHANTOM + DETECTAR TOKENS DEL DEV ===
+// === CONECTAR WALLET + DETECTAR TOKENS ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
 
@@ -13,66 +14,50 @@ document.getElementById("connectWallet").onclick = async () => {
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
     console.log("Wallet conectada:", userWallet);
 
-    // Obtener el mint del token del dev
     const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
     if (tokenData.mint) {
       tokenMint = tokenData.mint;
-      console.log("Token del dev detectado:", tokenData.symbol, tokenMint);
-      detectarTokensUsuario();
-    } else {
-      alert("Token del dev aún no detectado. Espera unos segundos...");
+      await detectarTokensUsuario();
     }
-
   } catch (err) {
     console.log("Conexión cancelada");
   }
 };
 
-// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO DEL TOKEN DEL DEV ===
+// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
   try {
-    const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736`, {
+    const resp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: "1",
+        jsonrpc: "2.0", id: "1",
         method: "getTokenAccountsByOwner",
-        params: [
-          userWallet,
-          { mint: tokenMint },
-          { encoding: "jsonParsed" }
-        ]
+        params: [userWallet, { mint: tokenMint }, { encoding: "jsonParsed" }]
       })
     });
-
-    const data = await response.json();
-    let balance = 0;
+    const data = await resp.json();
+    userTokenBalance = 0;
 
     if (data.result?.value?.length > 0) {
-      for (let account of data.result.value) {
-        const info = account.account.data.parsed.info;
+      data.result.value.forEach(acc => {
+        const info = acc.account.data.parsed.info;
         if (info.mint === tokenMint) {
-          balance += Number(info.tokenAmount.uiAmount);
+          userTokenBalance += Number(info.tokenAmount.uiAmount);
         }
-      }
+      });
     }
 
-    // Mostrar en pantalla
     const display = document.getElementById("userTokensDisplay") || crearDisplayTokens();
     const tokenSymbol = (await (await fetch(`${BACKEND_URL}/api/token`)).json()).symbol || "TOKEN";
-    display.innerHTML = `Tienes <strong>${balance.toLocaleString()} $${tokenSymbol}</strong>`;
+    display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${tokenSymbol}</strong>`;
     display.style.display = "block";
-    console.log(`Usuario tiene ${balance} tokens del dev`);
 
-  } catch (err) {
-    console.error("Error detectando tokens:", err);
-  }
+  } catch (err) { console.error("Error detectando balance:", err); }
 }
 
-// === CREAR EL DISPLAY SI NO EXISTE ===
 function crearDisplayTokens() {
   const div = document.createElement("div");
   div.id = "userTokensDisplay";
@@ -88,7 +73,66 @@ function crearDisplayTokens() {
   return div;
 }
 
-// === CARGAR TODO DESDE SPIN.PY (como antes) ===
+// === QUEMA REAL DE TOKENS (BOTÓN FUNCIONAL) ===
+document.getElementById("burnNow").onclick = async () => {
+  if (!userWallet) return alert("Primero conecta tu wallet");
+  if (!tokenMint) return alert("Token del dev no detectado aún");
+
+  const input = document.getElementById("customAmount");
+  let amount = input.value.trim();
+  if (!amount || isNaN(amount) || Number(amount) <= 0) return alert("Ingresa una cantidad válida");
+  if (Number(amount) > userTokenBalance) return alert(`No tienes suficientes tokens. Tienes: ${userTokenBalance.toLocaleString()}`);
+
+  const amountToBurn = Math.floor(Number(amount) * 1_000_000); // 6 decimales
+
+  try {
+    alert(`Quemando ${amount} tokens... ¡Esto es real!`);
+
+    const { Connection, PublicKey, Transaction } = solanaWeb3;
+    const { Token, TOKEN_PROGRAM_ID } = splToken;
+    const connection = new Connection("https://api.mainnet-beta.solana.com");
+
+    const tokenAccountResp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
+      method: "POST",
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: "1",
+        method: "getTokenAccountsByOwner",
+        params: [userWallet, { mint: tokenMint }, { encoding: "jsonParsed" }]
+      })
+    });
+    const tokenAccounts = await tokenAccountResp.json();
+    const tokenAccountPubkey = tokenAccounts.result.value[0].pubkey;
+
+    const transaction = new Transaction().add(
+      Token.createBurnInstruction(
+        TOKEN_PROGRAM_ID,
+        new PublicKey(tokenMint),
+        new PublicKey(tokenAccountPubkey),
+        new PublicKey(userWallet),
+        [],
+        BigInt(amountToBurn)
+      )
+    );
+
+    transaction.feePayer = window.solana.publicKey;
+    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    const signed = await window.solana.signTransaction(transaction);
+    const signature = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(signature);
+
+    alert(`¡QUEMADOS ${amount} TOKENS! Tx: ${signature}`);
+    input.value = "";
+    detectarTokensUsuario(); // Actualiza balance
+    cargarTodo(); // Actualiza grid
+
+  } catch (err) {
+    console.error(err);
+    alert("Error al quemar: " + (err.message || "Transacción rechazada"));
+  }
+};
+
+// === CARGAR TODO DESDE SPIN.PY ===
 async function cargarTodo() {
   try {
     const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
@@ -97,8 +141,8 @@ async function cargarTodo() {
       document.title = `${token.name} • Burn to Win`;
       document.getElementById("tokenLogo").src = token.image;
       document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${token.creator.slice(0,6)}...${token.creator.slice(-4)}</strong>`;
-      tokenMint = token.mint; // Actualiza el mint global
-      if (userWallet) detectarTokensUsuario(); // Revisa si ya está conectado
+      tokenMint = token.mint;
+      if (userWallet) detectarTokensUsuario();
     }
 
     const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
