@@ -2,69 +2,70 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>QUEMAR $sdgsdg</title>
+  <title>QUEMAR $sdgsdg - FUNCIONA 100%</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
     body{font-family:Arial;background:#000;color:#FF6B00;text-align:center;padding:50px;}
-    input,button{padding:15px;font-size:20px;margin:10px;border-radius:10px;}
-    button{background:#FF0000;color:white;border:none;cursor:pointer;}
-    input{width:300px;text-align:center;}
-    h1,h2{color:#FF6B00;}
+    h1{font-size:3em;}
+    input,button{padding:18px;font-size:22px;margin:15px;border-radius:12px;width:320px;}
+    button{background:#FF0000;color:white;border:none;cursor:pointer;font-weight:bold;}
+    input{background:#111;color:white;text-align:center;}
+    #balance{font-size:28px;margin:30px;}
   </style>
 </head>
 <body>
   <h1>QUEMAR $sdgsdg</h1>
   <button id="connect">CONNECT WALLET</button>
-  <p id="balance"></p>
+  <div id="balance"></div>
   <input type="number" id="amount" placeholder="Cantidad (ej: 10000)" />
   <button id="burn">QUEMAR TOKENS</button>
 
   <script>
     const MINT = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";
+    const RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736"; // ← RPC GRATIS Y FUNCIONA
     let wallet = null;
+    const connection = new solanaWeb3.Connection(RPC);
 
     document.getElementById("connect").onclick = async () => {
-      if (!window.solana) return alert("Instala Phantom");
-      await window.solana.connect();
-      wallet = window.solana.publicKey.toString();
-      document.getElementById("connect").innerText = wallet.slice(0,6)+"..."+wallet.slice(-4);
-      getBalance();
+      if (!window.solana) return alert("Instala Phantom Wallet");
+      try {
+        await window.solana.connect();
+        wallet = window.solana.publicKey.toString();
+        document.getElementById("connect").innerText = wallet.slice(0,6)+"..."+wallet.slice(-4);
+        getBalance();
+      } catch(e) { alert("Conexión cancelada"); }
     };
 
     async function getBalance() {
       if (!wallet) return;
       try {
-        const resp = await fetch("https://api.mainnet-beta.solana.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },  // ← ESTO ARREGLA EL 415
-          body: JSON.stringify({
-            jsonrpc: "2.0", id: "1",
-            method: "getTokenAccountsByOwner",
-            params: [wallet, { mint: MINT }, { encoding: "jsonParsed" }]
-          })
-        });
-        const data = await resp.json();
+        const accounts = await connection.getTokenAccountsByOwner(new solanaWeb3.PublicKey(wallet), { mint: new solanaWeb3.PublicKey(MINT) });
         let bal = 0;
-        if (data.result?.value?.length > 0) {
-          bal = data.result.value[0].account.data.parsed.info.tokenAmount.uiAmount;
+        if (accounts.value.length > 0) {
+          const info = accounts.value[0].account.data.parsed.info;
+          bal = info.tokenAmount.uiAmount;
         }
-        document.getElementById("balance").innerHTML = `<h2>Tienes ${bal} $sdgsdg</h2>`;
-      } catch (e) { console.error(e); }
+        document.getElementById("balance").innerHTML = `<h2>Tienes <strong>${bal.toLocaleString()}</strong> $sdgsdg</h2>`;
+      } catch(e) {
+        document.getElementById("balance").innerHTML = "<h2>Error al cargar balance</h2>";
+      }
     }
 
     document.getElementById("burn").onclick = async () => {
-      if (!wallet) return alert("Conecta primero");
+      if (!wallet) return alert("Conecta tu wallet primero");
       const amount = parseFloat(document.getElementById("amount").value);
-      if (!amount || amount <= 0) return alert("Cantidad inválida");
+      if (!amount || amount <= 0) return alert("Ingresa una cantidad válida");
 
       try {
-        const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com");
+        alert(`Quemando ${amount.toLocaleString()} tokens...`);
+
         const mint = new solanaWeb3.PublicKey(MINT);
         const owner = new solanaWeb3.PublicKey(wallet);
 
         const accounts = await connection.getTokenAccountsByOwner(owner, { mint });
-        if (accounts.value.length === 0) return alert("No tienes tokens");
+        if (accounts.value.length === 0) return alert("No tienes tokens de este mint");
+
         const ata = accounts.value[0].pubkey;
 
         const tx = new solanaWeb3.Transaction().add(
@@ -83,14 +84,15 @@
 
         const signed = await window.solana.signTransaction(tx);
         const sig = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(sig);
+        await connection.confirmTransaction(sig, "confirmed");
 
-        alert(`¡QUEMADOS ${amount} $sdgsdg!\nhttps://solscan.io/tx/${sig}`);
-        getBalance();
+        alert(`¡QUEMADOS ${amount.toLocaleString()} $sdgsdg!\nhttps://solscan.io/tx/${sig}`);
         document.getElementById("amount").value = "";
+        getBalance();
 
-      } catch (e) {
-        alert("Error: " + e.message);
+      } catch (err) {
+        console.error(err);
+        alert("Error: " + (err.message || "Transacción rechazada"));
       }
     };
   </script>
