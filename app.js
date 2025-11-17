@@ -1,57 +1,95 @@
-// MRMOON BURN-TO-WIN — 100% AUTOMÁTICO (NOV 2025)
+// HOLDERSBURN.VERCEL.APP — TOKEN AUTODETECTADO Y MOSTRADO EN VIVO
 let walletAddress = null;
 let myToken = null;
 const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com");
 
-// CONECTAR WALLET
+// === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
-  if (!window.solana?.isPhantom) return alert("¡Instala Phantom!");
+  if (!window.solana?.isPhantom) {
+    alert("¡Instala Phantom Wallet!");
+    return;
+  }
   try {
     const resp = await window.solana.connect();
     walletAddress = resp.publicKey.toString();
     document.getElementById("connectWallet").innerText = walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
-    detectarTokenYActivarTodo();
-  } catch (e) { alert("Cancelado"); }
+    detectarYMostrarToken(); // ¡Aquí pasa la magia!
+  } catch (e) {
+    alert("Conexión cancelada");
+  }
 };
 
-// AUTODETECCIÓN + TODO AUTOMÁTICO
-async function detectarTokenYActivarTodo() {
+// === DETECTAR TOKEN Y MOSTRARLO EN LA PÁGINA ===
+async function detectarYMostrarToken() {
   try {
-    const r = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${walletAddress}?limit=1`);
-    const data = await r.json();
-    if (!data.coins?.length) return alert("Conecta la wallet que creó tu token en pump.fun");
+    const res = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${walletAddress}?limit=1&includeNsfw=false`);
+    const data = await res.json();
+
+    if (!data.coins || data.coins.length === 0) {
+      alert("No se encontró token creado con esta wallet.\nConecta la wallet que usaste en pump.fun");
+      return;
+    }
 
     myToken = data.coins[0];
 
-    // Mostrar token bonito
-    document.querySelector("h1").innerText = `Welcome to burn • $${myToken.symbol}`;
-    document.title = `${myToken.name} Burn to Win`;
+    // === MOSTRAR EL TOKEN EN LA PÁGINA ===
+    // Logo grande
     if (myToken.image_uri) {
-      const img = new Image(60,60);
-      img.src = myToken.image_uri;
-      img.style.cssText = "border-radius:50%; margin-right:12px;";
-      document.querySelector(".title").prepend(img);
+      let logo = document.querySelector("#tokenLogo");
+      if (!logo) {
+        logo = document.createElement("img");
+        logo.id = "tokenLogo";
+        logo.style.cssText = "width:120px; height:120px; border-radius:50%; border:4px solid #FF6B00; box-shadow:0 0 30px #FF6B00; margin:20px auto; display:block;";
+        document.querySelector(".center-section").before(logo);
+      }
+      logo.src = myToken.image_uri;
     }
+
+    // Nombre y símbolo
+    const title = document.querySelector("h1") || document.querySelector(".title h1");
+    if (title) title.innerText = `${myToken.name}`;
+
+    const subtitle = document.querySelector(".title p") || document.createElement("p");
+    subtitle.innerText = `$${myToken.symbol} • Burn to Win Lottery`;
+    subtitle.style.cssText = "font-size:20px; color:#FFD700; margin-top:10px;";
+    if (!document.querySelector(".title p")) document.querySelector(".title").appendChild(subtitle);
+
+    // Mint (opcional, bonito)
+    const mintDiv = document.createElement("div");
+    mintDiv.innerHTML = `Mint: <span style="color:#FF6B00; font-family:monospace;">${myToken.mint.slice(0,8)}...${myToken.mint.slice(-6)}</span>`;
+    mintDiv.style.cssText = "text-align:center; margin:15px 0; font-size:14px; color:#aaa;";
+    document.querySelector(".center-section").before(mintDiv);
 
     // Jackpot en vivo
     setInterval(actualizarJackpot, 10000);
     actualizarJackpot();
 
-    // AUTO CLAIM FEES cada 85 segundos
-    setInterval(autoClaim, 85000);
-    autoClaim(); // primera vez ya
+    alert(`¡TOKEN CARGADO!\n${myToken.name} ($${myToken.symbol})\nTodo listo en tu página`);
 
-    alert(`¡TODO LISTO!\n$${myToken.symbol} detectado\nFees se reclaman automáticamente cada ~85 seg`);
-  } catch (e) { alert("Error detectando token"); }
+  } catch (e) {
+    console.error(e);
+    alert("Error cargando tu token");
+  }
 }
 
 async function actualizarJackpot() {
   if (!walletAddress) return;
-  const bal = await connection.getBalance(new solanaWeb3.PublicKey(walletAddress));
-  document.getElementById("jackpot").innerText = (bal/1e9).toFixed(4);
+  try {
+    const bal = await connection.getBalance(new solanaWeb3.PublicKey(walletAddress));
+    document.getElementById("jackpot").innerText = (bal/1e9).toFixed(4);
+  } catch (e) {}
 }
 
-async function autoClaim() {
-  if (!myToken || !walletAddress) return;
-  try {
-    const r = await fetch("https://
+// Countdown 5 min
+let c = 300;
+setInterval(() => {
+  c--; if(c<=0) c=300;
+  const m = String(Math.floor(c/60)).padStart(2,'0');
+  const s = String(c%60).padStart(2,'0');
+  document.getElementById("timer").innerText = m+":"+s;
+},1000);
+
+// Modal y partículas
+document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
+document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
+particlesJS("burnList", {particles:{number:{value:70},color:{value:"#FF6B00"},move:{speed:3}}});
