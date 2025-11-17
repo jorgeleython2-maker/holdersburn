@@ -1,95 +1,65 @@
-// HOLDERSBURN.VERCEL.APP — TOKEN AUTODETECTADO Y MOSTRADO EN VIVO
-let walletAddress = null;
-let myToken = null;
-const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com");
+// app.js — 100% AUTOMÁTICO CON TU WALLET (NOV 2025)
+const DEV_WALLET = "HtRMq7DGzHdcuJAXtijCBhLTRAGxxo11BoMSk99Y9jEm";
+let tokenInfo = null;
+let countdown = 300;
 
-// === CONECTAR WALLET ===
-document.getElementById("connectWallet").onclick = async () => {
-  if (!window.solana?.isPhantom) {
-    alert("¡Instala Phantom Wallet!");
-    return;
-  }
+// === DETECCIÓN AUTOMÁTICA DEL TOKEN ===
+async function detectarToken() {
   try {
-    const resp = await window.solana.connect();
-    walletAddress = resp.publicKey.toString();
-    document.getElementById("connectWallet").innerText = walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
-    detectarYMostrarToken(); // ¡Aquí pasa la magia!
-  } catch (e) {
-    alert("Conexión cancelada");
-  }
-};
+    const r = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${DEV_WALLET}?limit=1`);
+    const data = await r.json();
+    if (data.coins && data.coins.length > 0) {
+      const coin = data.coins[data.coins.length - 1]; // el más reciente
+      tokenInfo = {
+        name: coin.name,
+        symbol: coin.symbol,
+        mint: coin.mint,
+        image: coin.image_uri || "https://i.ibb.co.com/0jZ6g3f/fire.png"
+      };
 
-// === DETECTAR TOKEN Y MOSTRARLO EN LA PÁGINA ===
-async function detectarYMostrarToken() {
-  try {
-    const res = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${walletAddress}?limit=1&includeNsfw=false`);
-    const data = await res.json();
+      // Actualizar página
+      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${tokenInfo.symbol}`;
+      document.getElementById("pageTitle").innerText = `${tokenInfo.name} • Burn to Win`;
+      document.getElementById("tokenLogo").src = tokenInfo.image;
 
-    if (!data.coins || data.coins.length === 0) {
-      alert("No se encontró token creado con esta wallet.\nConecta la wallet que usaste en pump.fun");
-      return;
+      console.log("TOKEN DETECTADO:", tokenInfo.name, "$${tokenInfo.symbol}");
     }
-
-    myToken = data.coins[0];
-
-    // === MOSTRAR EL TOKEN EN LA PÁGINA ===
-    // Logo grande
-    if (myToken.image_uri) {
-      let logo = document.querySelector("#tokenLogo");
-      if (!logo) {
-        logo = document.createElement("img");
-        logo.id = "tokenLogo";
-        logo.style.cssText = "width:120px; height:120px; border-radius:50%; border:4px solid #FF6B00; box-shadow:0 0 30px #FF6B00; margin:20px auto; display:block;";
-        document.querySelector(".center-section").before(logo);
-      }
-      logo.src = myToken.image_uri;
-    }
-
-    // Nombre y símbolo
-    const title = document.querySelector("h1") || document.querySelector(".title h1");
-    if (title) title.innerText = `${myToken.name}`;
-
-    const subtitle = document.querySelector(".title p") || document.createElement("p");
-    subtitle.innerText = `$${myToken.symbol} • Burn to Win Lottery`;
-    subtitle.style.cssText = "font-size:20px; color:#FFD700; margin-top:10px;";
-    if (!document.querySelector(".title p")) document.querySelector(".title").appendChild(subtitle);
-
-    // Mint (opcional, bonito)
-    const mintDiv = document.createElement("div");
-    mintDiv.innerHTML = `Mint: <span style="color:#FF6B00; font-family:monospace;">${myToken.mint.slice(0,8)}...${myToken.mint.slice(-6)}</span>`;
-    mintDiv.style.cssText = "text-align:center; margin:15px 0; font-size:14px; color:#aaa;";
-    document.querySelector(".center-section").before(mintDiv);
-
-    // Jackpot en vivo
-    setInterval(actualizarJackpot, 10000);
-    actualizarJackpot();
-
-    alert(`¡TOKEN CARGADO!\n${myToken.name} ($${myToken.symbol})\nTodo listo en tu página`);
-
-  } catch (e) {
-    console.error(e);
-    alert("Error cargando tu token");
-  }
+  } catch (e) { console.log("Reintentando detección..."); }
 }
 
-async function actualizarJackpot() {
-  if (!walletAddress) return;
+// === JACKPOT EN VIVO (balance de tu wallet) ===
+async function updateJackpot() {
   try {
-    const bal = await connection.getBalance(new solanaWeb3.PublicKey(walletAddress));
-    document.getElementById("jackpot").innerText = (bal/1e9).toFixed(4);
+    const resp = await fetch(`https://api.mainnet-beta.solana.com`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: 1, method: "getBalance", params: [DEV_WALLET]
+      })
+    });
+    const data = await resp.json();
+    const sol = (data.result.value / 1e9).toFixed(4);
+    document.getElementById("jackpot").innerText = sol;
   } catch (e) {}
 }
 
-// Countdown 5 min
-let c = 300;
+// === TIMER 5 MIN ===
 setInterval(() => {
-  c--; if(c<=0) c=300;
-  const m = String(Math.floor(c/60)).padStart(2,'0');
-  const s = String(c%60).padStart(2,'0');
-  document.getElementById("timer").innerText = m+":"+s;
-},1000);
+  countdown--;
+  if (countdown <= 0) countdown = 300;
+  const m = String(Math.floor(countdown / 60)).padStart(2, "0");
+  const s = String(countdown % 60).padStart(2, "0");
+  document.getElementById("timer").innerText = `${m}:${s}`;
+}, 1000);
 
-// Modal y partículas
+// === INICIAR TODO ===
+detectarToken();
+setInterval(detectarToken, 30000); // reintenta cada 30s
+setInterval(updateJackpot, 10000);
+updateJackpot();
+
+// Partículas y modal (tu código original)
+particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" }, move: { speed: 4 } } });
+
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
-particlesJS("burnList", {particles:{number:{value:70},color:{value:"#FF6B00"},move:{speed:3}}});
