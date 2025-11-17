@@ -1,12 +1,12 @@
-// app.js — QUEMA REAL 100% FUNCIONAL + DECIMALES AUTOMÁTICOS (VERSIÓN ESTABLE 2025)
+// app.js — QUEMA REAL CON SOL INCINERATOR API + DETECCIÓN DE TOKENS (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
-const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736";
+const INCINERATOR_API = "https://v1.api.sol-incinerator.com";
 
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
 
-// === CONECTAR WALLET ===
+// === CONECTAR WALLET + DETECTAR TOKENS (TU CÓDIGO QUE SÍ FUNCIONA) ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
 
@@ -26,12 +26,12 @@ document.getElementById("connectWallet").onclick = async () => {
   }
 };
 
-// === DETECTAR BALANCE ===
+// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO (TU CÓDIGO QUE SÍ FUNCIONA) ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
   try {
-    const resp = await fetch(HELIUS_RPC, {
+    const resp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -77,7 +77,7 @@ function crearDisplayTokens() {
   return div;
 }
 
-// === QUEMA REAL 100% CON DETECCIÓN AUTOMÁTICA DE DECIMALES (VERSIÓN ESTABLE) ===
+// === QUEMA REAL CON SOL INCINERATOR API (SUSTITUYE TU FUNCIÓN ANTERIOR) ===
 document.getElementById("burnNow").onclick = async () => {
   if (!userWallet) return alert("Primero conecta tu wallet");
   if (!tokenMint) return alert("Token del dev no detectado");
@@ -90,41 +90,36 @@ document.getElementById("burnNow").onclick = async () => {
   }
 
   try {
-    alert(`Quemando ${amount.toLocaleString()} tokens...`);
+    alert(`Quemando ${amount.toLocaleString()} tokens con Sol Incinerator...`);
 
-    const { Connection, PublicKey, Transaction } = window.solanaWeb3;
-    const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
+    // === PASO 1: VERIFICAR API VIVA ===
+    const statusResp = await fetch(`${INCINERATOR_API}/`);
+    const status = await statusResp.json();
+    if (status.status !== "ok") throw new Error("API temporalmente offline");
 
-    const connection = new Connection(HELIUS_RPC, "confirmed");
-    const mintPubkey = new PublicKey(tokenMint);
-    const ownerPubkey = new PublicKey(userWallet);
+    // === PASO 2: LLAMAR A SOL INCINERATOR PARA QUEMAR ===
+    const resp = await fetch(`${INCINERATOR_API}/burn`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mint: tokenMint,
+        amount: Math.floor(amount * Math.pow(10, 9)), // 9 decimales (pump.fun)
+        userPublicKey: userWallet
+      })
+    });
 
-    // OBTENER DECIMALES REALES
-    const mintInfo = await connection.getParsedAccountInfo(mintPubkey);
-    const decimals = mintInfo.value.data.parsed.info.decimals;
-    console.log(`Token con ${decimals} decimales detectado`);
+    if (!resp.ok) throw new Error(`Error ${resp.status}: ${await resp.text()}`);
 
-    const amountToBurn = BigInt(Math.floor(amount * (10 ** decimals)));
+    const data = await resp.json();
+    console.log("Sol Incinerator respuesta:", data);
 
-    // ATA
-    const ata = await getAssociatedTokenAddress(mintPubkey, ownerPubkey);
-    const ataInfo = await connection.getAccountInfo(ata);
+    if (!data.transaction) throw new Error("No se generó transacción");
 
-    const tx = new Transaction();
+    // === PASO 3: FIRMAR Y ENVIAR LA TRANSACCIÓN ===
+    const { Connection, Transaction } = solanaWeb3;
+    const connection = new Connection("https://api.mainnet-beta.solana.com");
 
-    if (!ataInfo) {
-      tx.add(createAssociatedTokenAccountInstruction(ownerPubkey, ata, ownerPubkey, mintPubkey));
-    }
-
-    tx.add(createBurnInstruction(
-      ata,
-      mintPubkey,
-      ownerPubkey,
-      amountToBurn,
-      [],
-      TOKEN_PROGRAM_ID
-    ));
-
+    const tx = Transaction.from(Buffer.from(data.transaction, "base64"));
     tx.feePayer = window.solana.publicKey;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -132,17 +127,17 @@ document.getElementById("burnNow").onclick = async () => {
     const sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig, "confirmed");
 
-    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
+    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}\nRent recuperado: ${data.rentRecovered || 0} SOL`);
     input.value = "";
     detectarTokensUsuario();
 
   } catch (err) {
-    console.error("Error quema:", err);
-    alert("Error: " + (err.message || "Transacción rechazada"));
+    console.error(err);
+    alert("Error al quemar: " + (err.message || "API rechazada"));
   }
 };
 
-// === CARGAR TODO ===
+// === CARGAR TODO DESDE SPIN.PY (TU CÓDIGO QUE SÍ FUNCIONA) ===
 async function cargarTodo() {
   try {
     const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
