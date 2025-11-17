@@ -1,119 +1,75 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title id="pageTitle">Welcome to burn • Detecting token...</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
-  <style>
-    .dev-wallet {
-      text-align: center;
-      margin: 15px 0;
-      padding: 12px;
-      background: rgba(255,107,0,0.1);
-      border-radius: 12px;
-      color: #FF6B00;
-      font-weight: bold;
-      font-size: 15px;
+// app.js — TODO VIENE DEL SPIN.PY EN RAILWAY (NOV 2025)
+const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
+let countdown = 300;
+
+// === ACTUALIZAR TODO DESDE EL SPIN.PY ===
+async function updateAllFromSpin() {
+  try {
+    // 1. Token + Logo + Mint (todo del spin)
+    const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
+    if (token.name && token.name !== "Detectando token...") {
+      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
+      document.title = `${token.name} • Burn to Win`;
+      document.getElementById("tokenLogo").src = token.image;
+      // Wallet del dev también la sacamos del spin (por si cambias de wallet)
+      document.getElementById("devWalletDisplay").innerHTML = 
+        `Dev Wallet: <strong>${token.creator?.slice(0,6)}...${token.creator?.slice(-4) || "HtRMq...9jEm"}</strong>`;
     }
-    .burn-entry, .winner-entry {
-      background: rgba(255,107,0,0.1);
-      padding: 14px;
-      border-radius: 12px;
-      border-left: 5px solid #FF6B00;
-      margin: 10px 0;
-      font-size: 15px;
-    }
-    .winner-entry { color: #FFD700; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="container">
 
-    <!-- Header -->
-    <header>
-      <div class="title">
-        <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="Logo" class="fire-icon">
-        <div>
-          <h1 id="tokenName">Welcome to burn • Detecting token...</h1>
-          <p>The Weighted Burn-to-Win Lottery Platform</p>
-        </div>
-      </div>
-      <button id="connectWallet" class="connect-btn">Connect Wallet</button>
-    </header>
+    // 2. Jackpot real
+    const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
+    document.getElementById("jackpot").innerText = Number(jackpot.jackpot).toFixed(4);
 
-    <!-- Dev Wallet Fija -->
-    <div class="dev-wallet">
-      Dev Wallet: <strong>HtRMq...9jEm</strong>
-    </div>
+    // 3. Holders / Burn Grid
+    const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
+    document.getElementById("burnList").innerHTML = holders.holders.length > 0
+      ? holders.holders.map((h, i) => 
+          `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`
+        ).join("")
+      : `<div class="burn-entry">No holders yet...</div>`;
 
-    <!-- Main Boxes -->
-    <div class="boxes">
-      <div class="box lottery">
-        <h3>Weighted Lottery System</h3>
-        <p>Burn any amount to enter. The more you burn, the higher your win chance!</p>
-      </div>
-      <div class="box how">
-        <h3>How It Works</h3>
-        <ol>
-          <li>Connect wallet → Start Burning</li>
-          <li>Burn tokens → Join the grid</li>
-          <li>Every 20 seconds a weighted winner is drawn</li>
-          <li>Winner gets 0.01 SOL instantly</li>
-        </ol>
-      </div>
-      <div class="box features">
-        <h3>Live Features</h3>
-        <ul>
-          <li>Live Burn Grid</li>
-          <li>Auto jackpot</li>
-          <li>Phantom connection</li>
-          <li>100% synced with spin.py</li>
-        </ul>
-      </div>
-    </div>
+    // 4. Ganadores
+    const winners = await (await fetch(`${BACKEND_URL}/api/winners`)).json();
+    document.getElementById("winnerList").innerHTML = winners.winners.length > 0
+      ? winners.winners.map(w => 
+          `<div class="winner-entry">GANADOR ${w.wallet} — ${w.prize} | ${w.tokens} tokens | ${w.time}</div>`
+        ).join("")
+      : `<div class="winner-entry">Primer ganador pronto...</div>`;
 
-    <!-- Jackpot + Timer -->
-    <div class="center-section">
-      <div class="jackpot">Current Jackpot: <span id="jackpot">0.0000</span> SOL</div>
-      <div class="timer">Next draw in: <span id="timer">05:00</span></div>
-      <button id="openBurnModal" class="start-burning">Start Burning</button>
-    </div>
+    console.log("Todo actualizado desde spin.py");
+  } catch (e) {
+    console.log("Spin.py no responde aún... reintentando en 8s");
+  }
+}
 
-    <!-- Burn Grid -->
-    <section class="burn-grid">
-      <h2>Burn Grid • Live Holders</h2>
-      <div id="burnList" class="grid">Cargando holders...</div>
-    </section>
+// Timer local (backup)
+setInterval(() => {
+  countdown--;
+  if (countdown <= 0) countdown = 300;
+  const m = String(Math.floor(countdown / 60)).padStart(2, "0");
+  const s = String(countdown % 60).padStart(2, "0");
+  document.getElementById("timer").innerText = `${m}:${s}`;
+}, 1000);
 
-    <!-- Recent Winners -->
-    <section class="winners">
-      <h2>Recent Winners</h2>
-      <div id="winnerList" class="grid">Primer ganador pronto...</div>
-    </section>
-  </div>
+// Actualizar cada 8 segundos
+setInterval(updateAllFromSpin, 8000);
+updateAllFromSpin(); // Primera carga inmediata
 
-  <!-- Modal -->
-  <div id="burnModal" class="modal">
-    <div class="modal-content">
-      <span class="close">×</span>
-      <h2>Burn Tokens to Enter</h2>
-      <p>Choose amount — higher burn = higher win chance</p>
-      <div class="presets">
-        <button data-amount="10000">10K</button>
-        <button data-amount="50000">50K</button>
-        <button data-amount="100000">100K</button>
-        <button data-amount="500000">500K</button>
-      </div>
-      <input type="number" id="customAmount" placeholder="Custom amount" />
-      <button id="burnNow" class="burn-btn">BURN & ENTER</button>
-      <p class="warning">Tokens will be permanently burned</p>
-    </div>
-  </div>
+// Phantom (opcional, solo para el usuario)
+document.getElementById("connectWallet").onclick = async () => {
+  if (!window.solana?.isPhantom) return alert("¡Instala Phantom!");
+  try {
+    await window.solana.connect();
+    const w = window.solana.publicKey.toString();
+    document.getElementById("connectWallet").innerText = w.slice(0,6) + "..." + w.slice(-4);
+  } catch { }
+};
 
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
-  <script src="particles.min.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+// Modal
+document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
+document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
+
+// Partículas
+if (typeof particlesJS === "function") {
+  particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" } } });
+}
