@@ -1,18 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title id="pageTitle">Welcome to burn • Detecting...</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
+  <style>
+    .dev-wallet {
+      text-align: center;
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(255,107,0,0.1);
+      border-radius: 12px;
+      color: #FF6B00;
+      font-weight: bold;
+      font-size: 15px;
+    }
+    .burn-entry, .winner-entry {
+      background: rgba(255,107,0,0.1);
+      padding: 14px;
+      border-radius: 12px;
+      border-left: 5px solid #FF6B00;
+      margin: 10px 0;
+      font-size: 15px;
+    }
+    .winner-entry { color: #FFD700; font-weight: bold; }
+  </style>
 </head>
 <body>
   <div class="container">
 
+    <!-- Header -->
     <header>
       <div class="title">
-        <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="fire" class="fire-icon">
+        <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="Logo" class="fire-icon">
+       .class="title">
         <div>
           <h1 id="tokenName">Welcome to burn • Detecting token...</h1>
           <p>The Weighted Burn-to-Win Lottery Platform</p>
@@ -21,31 +44,74 @@
       <button id="connectWallet" class="connect-btn">Connect Wallet</button>
     </header>
 
-    <div class="boxes">
-      <div class="box lottery"><h3>Weighted Lottery System</h3><p>Burn any amount to enter. More burn = higher chance!</p></div>
-      <div class="box how"><h3>How It Works</h3><ol><li>Connect wallet</li><li>Burn tokens</li><li>Enter weighted draw every 5 min</li><li>Win jackpot!</li></ol></div>
-      <div class="box features"><h3>Live Features</h3><ul><li>Live Burn Grid</li><li>Auto jackpot</li><li>Real winners</li></ul></div>
+    <!-- Wallet del dev + Token del spin.py -->
+    <div class="dev-wallet" id="devWalletDisplay">
+      Dev Wallet: Cargando...
     </div>
 
+    <!-- Main Boxes -->
+    <div class="boxes">
+      <div class="box lottery">
+        <h3>Weighted Lottery System</h3>
+        <p>Burn any amount to enter. The more you burn, the higher your win chance!</p>
+      </div>
+      <div class="box how">
+        <h3>How It Works</h3>
+        <ol>
+          <li>Connect wallet → Start Burning</li>
+          <li>Burn tokens → Join the grid</li>
+          <li>Every 20 seconds a weighted winner is drawn</li>
+          <li>Winner gets 0.01 SOL instantly</li>
+        </ol>
+      </div>
+      <div class="box features">
+        <h3>Live Features</h3>
+        <ul>
+          <li>Live Burn Grid</li>
+          <li>Auto jackpot</li>
+          <li>Phantom connection</li>
+          <li>100% synced with spin.py</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Jackpot + Timer -->
     <div class="center-section">
-      <div class="jackpot">Current Jackpot: <span id="jackpot">0.000</span> SOL</div>
+      <div class="jackpot">Current Jackpot: <span id="jackpot">0.0000</span> SOL</div>
       <div class="timer">Next draw in: <span id="timer">05:00</span></div>
       <button id="openBurnModal" class="start-burning">Start Burning</button>
     </div>
 
+    <!-- Burn Grid -->
     <section class="burn-grid">
-      <h2>Burn Grid • Live Entries</h2>
-      <div id="burnList" class="grid"></div>
+      <h2>Burn Grid • Live Holders</h2>
+      <div id="burnList" class="grid">Cargando holders...</div>
     </section>
 
+    <!-- Recent Winners -->
     <section class="winners">
       <h2>Recent Winners</h2>
-      <div id="winnerList" class="grid"></div>
+      <div id="winnerList" class="grid">Primer ganador pronto...</div>
     </section>
   </div>
 
-  <!-- Modal igual que antes -->
-  <div id="burnModal" class="modal"> ... (tu modal completo) ... </div>
+  <!-- Modal -->
+  <div id="burnModal" class="modal">
+    <div class="modal-content">
+      <span class="close">×</span>
+      <h2>Burn Tokens to Enter</h2>
+      <p>Choose amount — higher burn = higher win chance</p>
+      <div class="presets">
+        <button data-amount="10000">10K</button>
+        <button data-amount="50000">50K</button>
+        <button data-amount="100000">100K</button>
+        <button data-amount="500000">500K</button>
+      </div>
+      <input type="number" id="customAmount" placeholder="Custom amount" />
+      <button id="burnNow" class="burn-btn">BURN & ENTER</button>
+      <p class="warning">Tokens will be permanently burned</p>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
   <script src="particles.min.js"></script>
