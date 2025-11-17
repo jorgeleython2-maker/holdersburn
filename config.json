@@ -1,0 +1,24 @@
+{
+  "mysql": {
+    "host": "31.220.17.137",
+    "database": "spinner",
+    "user": "streamly",
+    "password": "Streamly159@"
+  },
+  "solana": {
+    "helius_api_key": "95932bca-32bc-465f-912c-b42f7dd31736",
+    "dev_wallet": "HtRMq7DGzHdcuJAXtijCBhLTRAGxxo11BoMSk99Y9jEm",
+    "private_key_base58": "4Py7FVCqTTe8npFxiWRZ15bT5kr1tDXWAdZJyDzJwDwn85NZ22QhPp5bnRDvyAe2ydBsreVXYD8cPGf8fjEYzPU9",
+    "pump_fun_api_url_template": "https://frontend-api-v3.pump.fun/coins/user-created-coins/{dev_wallet}?offset=0&limit=10&includeNsfw=false",
+    "pump_fun_rpc_url": "https://api.mainnet-beta.solana.com"
+  },
+  "app": {
+    "update_interval": 30,
+    "roulette_interval": 20,
+    "max_holders_roulette": 50,
+    "reward_amount_sol": 0.00,
+    "minimum_tokens": 1000,
+    "fee_collection_interval": 90,
+    "priority_fee": 0.0001
+  }
+}
