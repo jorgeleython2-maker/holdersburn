@@ -1,12 +1,12 @@
-// app.js — QUEMA REAL CON SOL INCINERATOR API + DETECCIÓN DE TOKENS (NOV 2025)
+// app.js — QUEMA REAL CON FALLBACK (SIN CORS + SOL INCINERATOR FAIL-SAFE) - NOV 2025
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
-const INCINERATOR_API = "https://v1.api.sol-incinerator.com";
+const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736";
 
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
 
-// === CONECTAR WALLET + DETECTAR TOKENS (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
 
@@ -26,12 +26,12 @@ document.getElementById("connectWallet").onclick = async () => {
   }
 };
 
-// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === DETECTAR BALANCE (TU CÓDIGO QUE SÍ FUNCIONA) ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
   try {
-    const resp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
+    const resp = await fetch(HELIUS_RPC, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -77,7 +77,7 @@ function crearDisplayTokens() {
   return div;
 }
 
-// === QUEMA REAL CON SOL INCINERATOR API (SUSTITUYE TU FUNCIÓN ANTERIOR) ===
+// === QUEMA REAL CON FALLBACK (SOL INCINERATOR → MANUAL) ===
 document.getElementById("burnNow").onclick = async () => {
   if (!userWallet) return alert("Primero conecta tu wallet");
   if (!tokenMint) return alert("Token del dev no detectado");
@@ -90,36 +90,69 @@ document.getElementById("burnNow").onclick = async () => {
   }
 
   try {
-    alert(`Quemando ${amount.toLocaleString()} tokens con Sol Incinerator...`);
+    alert(`Quemando ${amount.toLocaleString()} tokens...`);
 
-    // === PASO 1: VERIFICAR API VIVA ===
-    const statusResp = await fetch(`${INCINERATOR_API}/`);
-    const status = await statusResp.json();
-    if (status.status !== "ok") throw new Error("API temporalmente offline");
+    // === MÉTODO 1: SOL INCINERATOR (rápido + rent) ===
+    try {
+      const status = await (await fetch(`${INCINERATOR_API}/`)).json();
+      if (status.status === "ok") {
+        const resp = await fetch(`${INCINERATOR_API}/burn`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mint: tokenMint,
+            amount: Math.floor(amount * Math.pow(10, 9)), // 9 decimales
+            userPublicKey: userWallet
+          })
+        });
 
-    // === PASO 2: LLAMAR A SOL INCINERATOR PARA QUEMAR ===
-    const resp = await fetch(`${INCINERATOR_API}/burn`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mint: tokenMint,
-        amount: Math.floor(amount * Math.pow(10, 9)), // 9 decimales (pump.fun)
-        userPublicKey: userWallet
-      })
-    });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.transaction) {
+            const { Transaction } = solanaWeb3;
+            const tx = Transaction.from(Buffer.from(data.transaction, "base64"));
+            const signed = await window.solana.signTransaction(tx);
+            const { Connection } = solanaWeb3;
+            const connection = new Connection(HELIUS_RPC);
+            const sig = await connection.sendRawTransaction(signed.serialize());
+            await connection.confirmTransaction(sig);
 
-    if (!resp.ok) throw new Error(`Error ${resp.status}: ${await resp.text()}`);
+            alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
+            input.value = "";
+            detectarTokensUsuario();
+            return; // Éxito, no hace fallback
+          }
+        }
+      }
+    } catch (e) {
+      console.log("Sol Incinerator falló, usando quema manual...");
+    }
 
-    const data = await resp.json();
-    console.log("Sol Incinerator respuesta:", data);
+    // === MÉTODO 2: QUEMA MANUAL (siempre funciona) ===
+    const { Connection, PublicKey, Transaction } = solanaWeb3;
+    const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = splToken;
 
-    if (!data.transaction) throw new Error("No se generó transacción");
+    const connection = new Connection(HELIUS_RPC, "confirmed");
+    const mint = new PublicKey(tokenMint);
+    const owner = new PublicKey(userWallet);
 
-    // === PASO 3: FIRMAR Y ENVIAR LA TRANSACCIÓN ===
-    const { Connection, Transaction } = solanaWeb3;
-    const connection = new Connection("https://api.mainnet-beta.solana.com");
+    const ata = await getAssociatedTokenAddress(mint, owner);
+    const ataInfo = await connection.getAccountInfo(ata);
 
-    const tx = Transaction.from(Buffer.from(data.transaction, "base64"));
+    const tx = new Transaction();
+    if (!ataInfo) {
+      tx.add(createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
+    }
+
+    tx.add(createBurnInstruction(
+      ata,
+      mint,
+      owner,
+      BigInt(Math.floor(amount * Math.pow(10, 9))), // 9 decimales
+      [],
+      TOKEN_PROGRAM_ID
+    ));
+
     tx.feePayer = window.solana.publicKey;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -127,17 +160,17 @@ document.getElementById("burnNow").onclick = async () => {
     const sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig, "confirmed");
 
-    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}\nRent recuperado: ${data.rentRecovered || 0} SOL`);
+    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
     input.value = "";
     detectarTokensUsuario();
 
   } catch (err) {
     console.error(err);
-    alert("Error al quemar: " + (err.message || "API rechazada"));
+    alert("Error: " + (err.message || "Transacción rechazada"));
   }
 };
 
-// === CARGAR TODO DESDE SPIN.PY (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === CARGAR TODO ===
 async function cargarTodo() {
   try {
     const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
