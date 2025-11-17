@@ -1,27 +1,35 @@
-// app.js — QUEMA REAL 100% FUNCIONAL + DETECCIÓN DE TOKENS (ARREGLADO - NOV 2025)
+// app.js — QUEMA REAL 100% FUNCIONAL CON DETECCIÓN AUTOMÁTICA DE DECIMALES (2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
-let decimals = 9;  // Para tokens pump.fun (9 decimales)
 
-// === CARGAR LIBRERÍAS SOLANA ===
-async function cargarLibrerias() {
-  if (window.solanaWeb3 && window.splToken) return;
+// === CARGAR LIBRERÍAS SOLANA + NUEVA API TOKEN ===
+async function cargarLibreriasSolana() {
+  if (window.solanaWeb3 && window.getBurnCheckedInstruction) return;
 
-  const web3 = document.createElement("script");
-  web3.src = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js";
-  document.head.appendChild(web3);
+  // web3.js
+  if (!window.solanaWeb3) {
+    const web3 = document.createElement("script");
+    web3.src = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js";
+    document.head.appendChild(web3);
+    await new Promise(r => web3.onload = r);
+  }
 
-  const spl = document.createElement("script");
-  spl.src = "https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js";
-  document.head.appendChild(spl);
+  // NUEVA API TOKEN 2025
+  const tokenScript = document.createElement("script");
+  tokenScript.src = "https://unpkg.com/@solana-program/token@0.2.0/dist/index.iife.js";
+  document.head.appendChild(tokenScript);
 
-  await new Promise(r => spl.onload = r);
-  console.log("Librerías cargadas correctamente");
+  await new Promise(resolve => {
+    tokenScript.onload = () => {
+      console.log("Librerías cargadas: web3.js + @solana-program/token");
+      resolve();
+    };
+  });
 }
 
-// === CONECTAR WALLET + DETECTAR TOKENS ===
+// === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
 
@@ -31,7 +39,7 @@ document.getElementById("connectWallet").onclick = async () => {
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
     console.log("Wallet conectada:", userWallet);
 
-    await cargarLibrerias();
+    await cargarLibreriasSolana();
 
     const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
     if (tokenData.mint) {
@@ -43,7 +51,7 @@ document.getElementById("connectWallet").onclick = async () => {
   }
 };
 
-// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO ===
+// === DETECTAR BALANCE ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
@@ -94,7 +102,7 @@ function crearDisplayTokens() {
   return div;
 }
 
-// === QUEMA REAL 100% FUNCIONAL (CREA ATA SI NO EXISTE) ===
+// === QUEMA REAL 100% CON DETECCIÓN AUTOMÁTICA DE DECIMALES ===
 document.getElementById("burnNow").onclick = async () => {
   if (!userWallet) return alert("Primero conecta tu wallet");
   if (!tokenMint) return alert("Token del dev no detectado");
@@ -106,71 +114,60 @@ document.getElementById("burnNow").onclick = async () => {
     return alert(`Cantidad inválida. Tienes: ${userTokenBalance.toLocaleString()}`);
   }
 
-  await cargarLibrerias();
-
-  const { Connection, PublicKey, Transaction, getAssociatedTokenAddress } = window.solanaWeb3;
-  const { createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
+  await cargarLibreriasSolana();
 
   try {
-    alert(`Quemando ${amount} tokens...`);
+    alert(`Quemando ${amount.toLocaleString()} tokens...`);
+
+    const { Connection, PublicKey, Transaction } = window.solanaWeb3;
+    const { getBurnCheckedInstruction, findAssociatedTokenPda, TOKEN_PROGRAM_ADDRESS } = window;
 
     const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
     const mintPubkey = new PublicKey(tokenMint);
-    const walletPubkey = new PublicKey(userWallet);
+    const ownerPubkey = new PublicKey(userWallet);
 
-    // ATA (crea si no existe)
-    const ata = await getAssociatedTokenAddress(mintPubkey, walletPubkey);
+    // OBTENER DECIMALES REALES DEL TOKEN
+    const mintInfo = await connection.getParsedAccountInfo(mintPubkey);
+    const decimals = mintInfo.value.data.parsed.info.decimals;
+    console.log(`Token con ${decimals} decimales detectado`);
 
-    // Verificar si existe ATA
-    const ataInfo = await connection.getAccountInfo(ata);
-    if (!ataInfo) {
-      // Crear ATA si no existe
-      const createAtaIx = createAssociatedTokenAccountInstruction(
-        walletPubkey,  // payer
-        ata,           // ata
-        walletPubkey,  // owner
-        mintPubkey     // mint
-      );
-      const txAta = new Transaction().add(createAtaIx);
-      txAta.feePayer = walletPubkey;
-      txAta.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    const amountToBurn = BigInt(Math.floor(amount * (10 ** decimals)));
 
-      const signedAta = await window.solana.signTransaction(txAta);
-      const sigAta = await connection.sendRawTransaction(signedAta.serialize());
-      await connection.confirmTransaction(sigAta, "confirmed");
-      console.log("ATA creada:", sigAta);
-    }
+    // Derivar ATA
+    const [ata] = await findAssociatedTokenPda({
+      mint: mintPubkey,
+      owner: ownerPubkey,
+      tokenProgram: TOKEN_PROGRAM_ADDRESS
+    });
 
-    // Quema
-    const amountToBurn = BigInt(Math.floor(amount * 1_000_000_000)); // 9 decimales para pump.fun
-    const burnIx = createBurnInstruction(
-      ata,
-      mintPubkey,
-      walletPubkey,
-      amountToBurn,
-      [],
-      TOKEN_PROGRAM_ID
-    );
+    // QUEMA CON DECIMALES CORRECTOS
+    const burnIx = getBurnCheckedInstruction({
+      account: ata,
+      mint: mintPubkey,
+      authority: ownerPubkey,
+      amount: amountToBurn,
+      decimals: decimals
+    });
 
     const tx = new Transaction().add(burnIx);
-    tx.feePayer = walletPubkey;
+    tx.feePayer = window.solana.publicKey;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
     const signed = await window.solana.signTransaction(tx);
     const sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig, "confirmed");
 
-    alert(`¡QUEMADOS ${amount} TOKENS!\nhttps://solscan.io/tx/${sig}`);
+    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
     input.value = "";
     detectarTokensUsuario();
 
   } catch (err) {
-    console.error(err);
+    console.error("Error quema:", err);
     alert("Error: " + (err.message || "Transacción rechazada"));
   }
 };
 
-// === CARGAR TODO DESDE SPIN.PY ===
+// === CARGAR TODO ===
 async function cargarTodo() {
   try {
     const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
@@ -206,6 +203,6 @@ setInterval(() => {
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
-// Iniciar
+// INICIAR
 cargarTodo();
 setInterval(cargarTodo, 8000);
