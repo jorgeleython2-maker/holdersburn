@@ -1,72 +1,90 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MRMOON Burn to Win • Quema y Gana</title>
+  <title>Welcome to burn • MRMOON</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="https://pump.fun/favicon.ico" />
+  <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
 </head>
 <body>
   <div class="container">
-    <header class="header">
-      <div class="logo">
-        <span class="fire">Welcome to MRMOON Burn</span>
-        <p>Lotería ponderada • Quema más = Ganas más</p>
+
+    <!-- Header -->
+    <header>
+      <div class="title">
+        <img src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="fire" class="fire-icon">
+        <div>
+          <h1>Welcome to burn</h1>
+          <p>The Weighted Burn-to-Win Lottery Platform</p>
+        </div>
       </div>
       <button id="connectWallet" class="connect-btn">Connect Wallet</button>
     </header>
 
-    <section class="hero">
-      <h1>MRMOON Burn to Win</h1>
-      <p class="jackpot">Jackpot Actual: <span id="jackpot">0.000</span> SOL</p>
-      <div class="countdown">Próximo sorteo en: <span id="timer">05:00</span></div>
-      <button class="burn-btn" id="openBurnModal">QUEMAR Y ENTRAR</button>
-    </section>
-
-    <div class="info-grid">
-      <div class="info-box weighted">
-        <h3>Sistema Ponderado</h3>
-        <p>Quema cualquier cantidad de $MRMOON. Cuanto más quemes, más chance de ganar el jackpot.</p>
+    <!-- Main Boxes -->
+    <div class="boxes">
+      <div class="box lottery">
+        <h3>Weighted Lottery System</h3>
+        <p>Burn any amount of burn tokens to enter. The more you burn, the higher your win chance. A weighted winner is drawn every 5 minutes from the Burn Grid.</p>
       </div>
-      <div class="info-box how">
-        <h3>Cómo funciona</h3>
+
+      <div class="box how">
+        <h3>How It Works</h3>
         <ol>
-          <li>Conecta tu wallet</li>
-          <li>Elige cuánto quemar</li>
-          <li>Firma y entra al sorteo</li>
-          <li>Cada 5 minutos se sortea un ganador • ¡Tú puedes serlo!</li>
+          <li>Connect wallet and click "Start Burning" to open the burn modal.</li>
+          <li>Choose burn amount — use presets for target win % or enter custom amount.</li>
+          <li>Sign transaction and join the Burn Grid. Burn more anytime to increase your win chance!</li>
+          <li>Every 5 minutes a weighted winner is drawn. Higher burns = higher chance to win jackpot!</li>
         </ol>
       </div>
+
+      <div class="box features">
+        <h3>Live Features</h3>
+        <ul>
+          <li>Interactive Burn Grid</li>
+          <li>Real-time node updates</li>
+          <li>Weighted burn system</li>
+          <li>Deflationary tokenomics</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Jackpot + Timer + Button -->
+    <div class="center-section">
+      <div class="jackpot">Current Jackpot: <span id="jackpot">0.000</span> SOL</div>
+      <div class="timer">Next draw in: <span id="timer">05:00</span></div>
+      <button id="openBurnModal" class="start-burning">Start Burning</button>
     </div>
 
     <!-- Live Burn Grid -->
     <section class="burn-grid">
-      <h2>Últimos Quemadores (Live)</h2>
-      <div id="burnList"></div>
+      <h2>Burn Grid • Live Entries</h2>
+      <div id="burnList" class="grid"></div>
     </section>
 
-    <!-- Ganadores recientes -->
+    <!-- Recent Winners -->
     <section class="winners">
-      <h2>Últimos Ganadores</h2>
-      <div id="winnerList"></div>
+      <h2>Recent Winners</h2>
+      <div id="winnerList" class="grid"></div>
     </section>
   </div>
 
-  <!-- Modal de quema -->
+  <!-- Burn Modal -->
   <div id="burnModal" class="modal">
     <div class="modal-content">
       <span class="close">×</span>
-      <h2>Quema $MRMOON para entrar</h2>
+      <h2>Burn Tokens to Enter Lottery</h2>
+      <p>Choose amount — higher burn = higher win chance</p>
       <div class="presets">
         <button data-amount="1000">1,000</button>
         <button data-amount="10000">10,000</button>
         <button data-amount="50000">50,000</button>
         <button data-amount="100000">100,000</button>
       </div>
-      <input type="number" id="customAmount" placeholder="Cantidad personalizada" />
-      <button id="burnNow" class="burn-now">QUEMAR AHORA</button>
-      <p class="note">Esta acción es permanente • Los tokens se queman para siempre</p>
+      <input type="number" id="customAmount" placeholder="Custom amount" />
+      <button id="burnNow" class="burn-btn">BURN & ENTER</button>
+      <p class="warning">Tokens will be permanently burned • This action cannot be reversed</p>
     </div>
   </div>
 
