@@ -1,14 +1,10 @@
-// app.js — DETECCIÓN + QUEMA REAL 100% FUNCIONAL (VERSIÓN FINAL - NOV 2025)
+// app.js — QUEMA REAL 100% FUNCIONAL + DETECCIÓN DE TOKENS (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
 
-// === CARGAR LIBRERÍAS SOLANA CORRECTAMENTE (ARREGLO DEL ERROR) ===
-const solanaWeb3 = window.solanaWeb3 || window.SolanaWeb3 || await import("https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js");
-const splToken = window.splToken || window.SplToken || await import("https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js");
-
-// === CONECTAR WALLET + DETECTAR TOKENS (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === CONECTAR WALLET + DETECTAR TOKENS ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
 
@@ -28,7 +24,7 @@ document.getElementById("connectWallet").onclick = async () => {
   }
 };
 
-// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
@@ -59,9 +55,7 @@ async function detectarTokensUsuario() {
     display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${tokenSymbol}</strong>`;
     display.style.display = "block";
 
-  } catch (err) { 
-    console.error("Error detectando balance:", err);
-  }
+  } catch (err) { console.error("Error detectando balance:", err); }
 }
 
 function crearDisplayTokens() {
@@ -79,7 +73,7 @@ function crearDisplayTokens() {
   return div;
 }
 
-// === QUEMA REAL 100% FUNCIONAL (ARREGLADO) ===
+// === QUEMA REAL DE TOKENS (BOTÓN FUNCIONAL) ===
 document.getElementById("burnNow").onclick = async () => {
   if (!userWallet) return alert("Primero conecta tu wallet");
   if (!tokenMint) return alert("Token del dev no detectado aún");
@@ -89,16 +83,15 @@ document.getElementById("burnNow").onclick = async () => {
   if (!amount || isNaN(amount) || Number(amount) <= 0) return alert("Ingresa una cantidad válida");
   if (Number(amount) > userTokenBalance) return alert(`No tienes suficientes tokens. Tienes: ${userTokenBalance.toLocaleString()}`);
 
-  const amountToBurn = Math.floor(Number(amount) * 1_000_000);
+  const amountToBurn = Math.floor(Number(amount) * 1_000_000); // 6 decimales
 
   try {
-    alert(`Quemando ${amount} tokens...`);
+    alert(`Quemando ${amount} tokens... ¡Esto es real!`);
 
-    const { Connection, PublicKey, Transaction } = window.solanaWeb3;
-    const { createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
-    const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+    const { Connection, PublicKey, Transaction } = solanaWeb3;
+    const { Token, TOKEN_PROGRAM_ID } = splToken;
+    const connection = new Connection("https://api.mainnet-beta.solana.com");
 
-    // Obtener ATA del usuario
     const tokenAccountResp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
       method: "POST",
       body: JSON.stringify({
@@ -108,18 +101,16 @@ document.getElementById("burnNow").onclick = async () => {
       })
     });
     const tokenAccounts = await tokenAccountResp.json();
-    if (!tokenAccounts.result?.value?.[0]) return alert("No tienes tokens o ATA no encontrada");
-
     const tokenAccountPubkey = tokenAccounts.result.value[0].pubkey;
 
     const transaction = new Transaction().add(
-      createBurnInstruction(
-        new PublicKey(tokenAccountPubkey),
+      Token.createBurnInstruction(
+        TOKEN_PROGRAM_ID,
         new PublicKey(tokenMint),
+        new PublicKey(tokenAccountPubkey),
         new PublicKey(userWallet),
-        BigInt(amountToBurn),
         [],
-        TOKEN_PROGRAM_ID
+        BigInt(amountToBurn)
       )
     );
 
@@ -128,12 +119,12 @@ document.getElementById("burnNow").onclick = async () => {
 
     const signed = await window.solana.signTransaction(transaction);
     const signature = await connection.sendRawTransaction(signed.serialize());
-    await connection.confirmTransaction(signature, "confirmed");
+    await connection.confirmTransaction(signature);
 
-    alert(`¡QUEMADOS ${amount} TOKENS!\nTx: https://solscan.io/tx/${signature}`);
+    alert(`¡QUEMADOS ${amount} TOKENS! Tx: ${signature}`);
     input.value = "";
-    detectarTokensUsuario();
-    cargarTodo();
+    detectarTokensUsuario(); // Actualiza balance
+    cargarTodo(); // Actualiza grid
 
   } catch (err) {
     console.error(err);
