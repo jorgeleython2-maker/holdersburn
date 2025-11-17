@@ -1,43 +1,43 @@
-// app.js — QUEMA REAL 100% FUNCIONAL (VERSIÓN FINAL QUE SÍ QUEMA - NOV 2025)
+// app.js — QUEMA REAL 100% FUNCIONAL CON @solana-program/token (2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
 
-// === CARGAR LIBRERÍAS SOLANA ===
-async function cargarLibrerias() {
-  if (window.solanaWeb3 && window.splToken) return;
+// === CARGAR LIBRERÍAS MODERNAS (solana-program/token) ===
+async function cargarLibreriasModernas() {
+  if (window.getBurnCheckedInstruction) return;
 
-  const web3 = document.createElement("script");
-  web3.src = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js";
-  document.head.appendChild(web3);
+  const script = document.createElement("script");
+  script.src = "https://unpkg.com/@solana-program/token@0.2.0/dist/index.iife.js";
+  document.head.appendChild(script);
 
-  const spl = document.createElement("script");
-  spl.src = "https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js";
-  document.head.appendChild(spl);
-
-  await new Promise(r => spl.onload = r);
-  console.log("Librerías cargadas");
+  await new Promise(r => script.onload = r);
+  console.log("Librería moderna @solana-program/token cargada");
 }
 
 // === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
-  if (!window.solana?.isPhantom) return alert("¡Instala Phantom!");
+  if (!window.solana?.isPhantom) return alert("Instala Phantom Wallet");
 
   try {
     await window.solana.connect();
     userWallet = window.solana.publicKey.toString();
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
-    await cargarLibrerias();
+    console.log("Wallet conectada:", userWallet);
 
-    const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-    tokenMint = tokenData.mint;
-    await detectarTokensUsuario();
-  } catch (e) { alert("Cancelado"); }
+    await cargarLibreriasModernas();
+
+    const data = await (await fetch(`${BACKEND_URL}/api/token`)).json();
+    tokenMint = data.mint;
+    await detectarBalance();
+  } catch (e) {
+    alert("Conexión cancelada");
+  }
 };
 
 // === DETECTAR BALANCE ===
-async function detectarTokensUsuario() {
+async function detectarBalance() {
   if (!userWallet || !tokenMint) return;
 
   try {
@@ -54,7 +54,7 @@ async function detectarTokensUsuario() {
 
     if (data.result?.value?.length > 0) {
       data.result.value.forEach(acc => {
-        userTokenBalance += Number(acc.account.data.parsed.info.tokenAmount	uiAmount || 0);
+        userTokenBalance += Number(acc.account.data.parsed.info.tokenAmount.uiAmount || 0);
       });
     }
 
@@ -74,40 +74,48 @@ function crearDisplay() {
   return div;
 }
 
-// === QUEMA REAL QUE SÍ FUNCIONA (VERSIÓN 0.4.8) ===
+// === QUEMA REAL 100% FUNCIONAL CON getBurnCheckedInstruction (2025) ===
 document.getElementById("burnNow").onclick = async () => {
-  if (!userWallet || !tokenMint || userTokenBalance <= 0) return alert("No tienes tokens o no estás conectado");
+  if (!userWallet || !tokenMint || userTokenBalance <= 0) return alert("No tienes tokens");
 
   const input = document.getElementById("customAmount");
   const amount = parseFloat(input.value);
   if (!amount || amount <= 0 || amount > userTokenBalance) return alert("Cantidad inválida");
 
-  await cargarLibrerias();
+  await cargarLibreriasModernas();
+
+  const {
+    getBurnCheckedInstruction,
+    findAssociatedTokenPda,
+    TOKEN_PROGRAM_ADDRESS
+  } = window;
 
   const { Connection, PublicKey, Transaction } = window.solanaWeb3;
-  const { getAssociatedTokenAddress, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
 
   try {
     alert(`Quemando ${amount} tokens...`);
 
     const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
-    const mintPubkey = new PublicKey(tokenMint);
-    const walletPubkey = new PublicKey(userWallet);
+    const mint = new PublicKey(tokenMint);
+    const owner = new PublicKey(userWallet);
 
-    // Obtener o crear ATA
-    const ata = await getAssociatedTokenAddress(mintPubkey, walletPubkey);
+    // Derivar ATA
+    const [ata] = await findAssociatedTokenPda({
+      mint,
+      owner,
+      tokenProgram: TOKEN_PROGRAM_ADDRESS
+    });
 
-    const tx = new Transaction().add(
-      createBurnInstruction(
-        ata,                    // source
-        mintPubkey,             // mint
-        walletPubkey,           // owner
-        BigInt(Math.floor(amount * 1_000_000)), // amount (6 decimals)
-        [],                     // multiSigners
-        TOKEN_PROGRAM_ID
-      )
-    );
+    // Crear instrucción de quema
+    const burnIx = getBurnCheckedInstruction({
+      account: ata,
+      mint,
+      authority: owner,
+      amount: BigInt(Math.floor(amount * 1_000_000)), // 6 decimals
+      decimals: 6
+    });
 
+    const tx = new Transaction().add(burnIx);
     tx.feePayer = window.solana.publicKey;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -117,15 +125,15 @@ document.getElementById("burnNow").onclick = async () => {
 
     alert(`¡QUEMADOS ${amount} TOKENS!\nhttps://solscan.io/tx/${sig}`);
     input.value = "";
-    detectarTokensUsuario();
+    detectarBalance();
 
   } catch (err) {
-    console.error(err);
+    console.error("Error quema:", err);
     alert("Error: " + (err.message || "Transacción rechazada"));
   }
 };
 
-// Timer + Modal + Inicio
+// Timer + Modal
 let countdown = 300;
 setInterval(() => {
   countdown--; if (countdown <= 0) countdown = 300;
@@ -137,4 +145,5 @@ setInterval(() => {
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
-cargarLibrerias();
+// Iniciar
+cargarLibreriasModernas();
