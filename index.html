@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title id="pageTitle">Welcome to burn • Detectando token...</title>
-  <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
+  <!-- FAVICON ÉPICO QUE NUNCA FALLA -->
+  <link rel="icon" href="https://i.imgur.com/8f3f8fB.png" />
   <style>
     body {font-family: 'Inter', sans-serif;background:#000;color:#fff;margin:0;padding:0;overflow-x:hidden;}
     .container{max-width:1200px;margin:0 auto;padding:20px;}
     header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid #333;}
     .title{display:flex;align-items:center;gap:15px;}
-    .fire-icon{width:60px;height:60px;border-radius:50%;}
+    .fire-icon{width:60px;height:60px;border-radius:50%;object-fit:cover;}
     h1{margin:0;font-size:28px;}
     .connect-btn{background:#FF6B00;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;}
     .dev-wallet{text-align:center;margin:20px 0;padding:15px;background:rgba(255,107,0,0.1);border-radius:12px;color:#FF6B00;font-weight:bold;font-size:16px;}
@@ -42,7 +43,8 @@
     <!-- Header -->
     <header>
       <div class="title">
-        <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="Token Logo" class="fire-icon">
+        <!-- LOGO ÉPICO QUE NUNCA FALLA -->
+        <img id="tokenLogo" src="https://i.imgur.com/8f3f8fB.png" alt="Fuego Épico" class="fire-icon">
         <div>
           <h1 id="tokenName">Welcome to burn • Detectando token...</h1>
           <p>Burn-to-Win Real • Quema tokens y gana SOL cada 20 segundos</p>
@@ -56,7 +58,7 @@
       Dev Wallet: Cargando...
     </div>
 
-    <!-- Tokens del usuario (aparece al conectar) -->
+    <!-- Tokens del usuario -->
     <div class="user-tokens" id="userTokensDisplay" style="display:none;">
       Tienes <strong>0</strong> tokens
     </div>
@@ -93,7 +95,7 @@
       <button id="openBurnModal" class="start-burning">QUEMAR TOKENS</button>
     </div>
 
-    <!-- Burn Grid (holders en vivo) -->
+    <!-- Burn Grid -->
     <section class="burn-grid">
       <h2>Burn Grid • Holders en Vivo</h2>
       <div id="burnList" class="grid">
@@ -110,7 +112,7 @@
     </section>
   </div>
 
-  <!-- MODAL DE QUEMA REAL -->
+  <!-- MODAL DE QUEMA -->
   <div id="burnModal" class="modal">
     <div class="modal-content">
       <span class="close">×</span>
@@ -132,7 +134,6 @@
   <!-- Scripts necesarios -->
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js"></script>
-  <script src="particles.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
