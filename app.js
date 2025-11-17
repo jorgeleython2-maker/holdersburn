@@ -1,20 +1,23 @@
-// app.js — QUEMA REAL + DETECCIÓN 100% FUNCIONAL (NOV 2025) - VERSIÓN FINAL QUE SÍ QUEMA
+// app.js — VERSIÓN FINAL INDESTRUCTIBLE (FUNCIONA CON O SIN RAILWAY) - NOV 2025
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
+
+// MINT DE RESPALDO (TU TOKEN REAL - CAMBIA ESTE SI LANZAS OTRO)
+const MINT_DE_RESPALDO = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";  // ← TU MINT ACTUAL
+
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
+let tokenSymbol = "TOKEN";
 
-// === ARREGLO DEFINITIVO: CARGAR LAS LIBRERÍAS CORRECTAMENTE ===
-if (!window.solanaWeb3 || !window.splToken) {
-  await Promise.all([
-    import("https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"),
-    import("https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js")
-  ]);
-}
+// === CARGAR LIBRERÍAS SOLANA ===
+await Promise.all([
+  import("https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"),
+  import("https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js")
+]);
 const { Connection, PublicKey, Transaction } = window.solanaWeb3;
 const { createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
 
-// === CONECTAR WALLET + DETECTAR TOKENS (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
   if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
 
@@ -23,18 +26,43 @@ document.getElementById("connectWallet").onclick = async () => {
     userWallet = window.solana.publicKey.toString();
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
     console.log("Wallet conectada:", userWallet);
-
-    const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-    if (tokenData.mint) {
-      tokenMint = tokenData.mint;
-      await detectarTokensUsuario();
-    }
+    await cargarTokenYBalance();
   } catch (err) {
-    console.log("Conexión cancelada");
+    alert("Conexión cancelada");
   }
 };
 
-// === DETECTAR CUÁNTOS TOKENS TIENE EL USUARIO (TU CÓDIGO QUE SÍ FUNCIONA) ===
+// === CARGAR TOKEN (CON RESPALDO SI RAILWAY CAE) ===
+async function cargarTokenYBalance() {
+  try {
+    const resp = await fetch(`${BACKEND_URL}/api/token`, { timeout: 8000 });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.mint && data.mint !== "undefined") {
+        tokenMint = data.mint;
+        tokenSymbol = data.symbol || "TOKEN";
+        console.log("Token cargado desde backend:", tokenSymbol);
+      } else {
+        throw new Error("Mint inválido");
+      }
+    } else {
+      throw new Error("Backend no responde");
+    }
+  } catch (err) {
+    console.log("Backend caído → usando mint de respaldo");
+    tokenMint = MINT_DE_RESPALDO;
+    tokenSymbol = "sdgsdg"; // Cambia si tu token tiene otro símbolo
+    alert("Backend temporalmente caído → usando modo offline (todo funciona igual)");
+  }
+
+  document.getElementById("tokenName").innerHTML = `Welcome to burn • $${tokenSymbol}`;
+  document.title = `Burn to Win • $${tokenSymbol}`;
+  document.getElementById("tokenLogo").src = "https://i.ibb.co.com/0jZ6g3f/fire.png";
+
+  await detectarTokensUsuario();
+}
+
+// === DETECTAR TOKENS DEL USUARIO ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
@@ -53,53 +81,44 @@ async function detectarTokensUsuario() {
 
     if (data.result?.value?.length > 0) {
       data.result.value.forEach(acc => {
-        const info = acc.account.data.parsed.info;
-        if (info.mint === tokenMint) {
-          userTokenBalance += Number(info.tokenAmount.uiAmount);
-        }
+        const amount = acc.account.data.parsed.info.tokenAmount.uiAmount;
+        userTokenBalance += Number(amount);
       });
     }
 
     const display = document.getElementById("userTokensDisplay") || crearDisplayTokens();
-    const tokenSymbol = (await (await fetch(`${BACKEND_URL}/api/token`)).json()).symbol || "TOKEN";
     display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${tokenSymbol}</strong>`;
     display.style.display = "block";
 
-  } catch (err) { 
-    console.error("Error detectando balance:", err); 
+  } catch (err) {
+    console.error("Error detectando tokens:", err);
   }
 }
 
 function crearDisplayTokens() {
   const div = document.createElement("div");
   div.id = "userTokensDisplay";
-  div.style.textAlign = "center";
-  div.style.margin = "20px 0";
-  div.style.padding = "15px";
-  div.style.background = "rgba(255,107,0,0.1)";
-  div.style.borderRadius = "12px";
-  div.style.color = "#FF6B00";
-  div.style.fontSize = "18px";
-  div.style.fontWeight = "bold";
+  div.className = "user-tokens";
   document.querySelector(".dev-wallet").after(div);
   return div;
 }
 
-// === QUEMA REAL 100% FUNCIONAL (ARREGLADA) ===
+// === QUEMA REAL 100% FUNCIONAL ===
 document.getElementById("burnNow").onclick = async () => {
-  if (!userWallet) return alert("Primero conecta tu wallet");
-  if (!tokenMint) return alert("Token del dev no detectado aún");
+  if (!userWallet) return alert("Conecta tu wallet primero");
+  if (!tokenMint) return alert("Token no cargado");
   if (userTokenBalance <= 0) return alert("No tienes tokens para quemar");
 
   const input = document.getElementById("customAmount");
-  let amount = input.value.trim();
-  if (!amount || isNaN(amount) || Number(amount) <= 0) return alert("Ingresa una cantidad válida");
-  if (Number(amount) > userTokenBalance) return alert(`No tienes suficientes tokens. Tienes: ${userTokenBalance.toLocaleString()}`);
+  let amount = parseFloat(input.value);
+  if (!amount || amount <= 0 || amount > userTokenBalance) {
+    return alert(`Cantidad inválida. Tienes: ${userTokenBalance.toLocaleString()}`);
+  }
 
-  const amountToBurn = BigInt(Math.floor(Number(amount) * 1_000_000));
+  const amountToBurn = BigInt(Math.floor(amount * 1_000_000));
 
   try {
-    alert(`Quemando ${amount} tokens...`);
+    alert(`Quemando ${amount} $${tokenSymbol}...`);
 
     const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
@@ -115,30 +134,29 @@ document.getElementById("burnNow").onclick = async () => {
     const data = await resp.json();
     if (!data.result?.value?.[0]) return alert("No se encontró tu cuenta de tokens");
 
-    const tokenAccountPubkey = data.result.value[0].pubkey;
+    const ata = data.result.value[0].pubkey;
 
-    const transaction = new Transaction().add(
+    const tx = new Transaction().add(
       createBurnInstruction(
-        new PublicKey(tokenAccountPubkey),     // source
-        new PublicKey(tokenMint),              // mint
-        new PublicKey(userWallet),             // owner
-        amountToBurn,                          // amount
-        [],                                    // multiSigners
+        new PublicKey(ata),
+        new PublicKey(tokenMint),
+        new PublicKey(userWallet),
+        amountToBurn,
+        [],
         TOKEN_PROGRAM_ID
       )
     );
 
-    transaction.feePayer = window.solana.publicKey;
-    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    tx.feePayer = window.solana.publicKey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
-    const signed = await window.solana.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(signed.serialize());
-    await connection.confirmTransaction(signature, "confirmed");
+    const signed = await window.solana.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig, "confirmed");
 
-    alert(`¡QUEMADOS ${amount} TOKENS!\nhttps://solscan.io/tx/${signature}`);
+    alert(`¡QUEMADOS ${amount} $${tokenSymbol}!\nhttps://solscan.io/tx/${sig}`);
     input.value = "";
     detectarTokensUsuario();
-    cargarTodo();
 
   } catch (err) {
     console.error(err);
@@ -146,36 +164,28 @@ document.getElementById("burnNow").onclick = async () => {
   }
 };
 
-// === CARGAR TODO DESDE SPIN.PY (SIN CAMBIOS) ===
-async function cargarTodo() {
+// === CARGAR INFO BÁSICA (jackpot, holders, etc.) ===
+async function cargarInfo() {
   try {
-    const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-    if (token.name && token.name !== "Detectando...") {
-      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
-      document.title = `${token.name} • Burn to Win`;
-      document.getElementById("tokenLogo").src = token.image;
-      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${token.creator.slice(0,6)}...${token.creator.slice(-4)}</strong>`;
-      tokenMint = token.mint;
-      if (userWallet) detectarTokensUsuario();
+    const [jackpotResp, holdersResp] = await Promise.all([
+      fetch(`${BACKEND_URL}/api/jackpot`),
+      fetch(`${BACKEND_URL}/api/holders`)
+    ]);
+
+    if (jackpotResp.ok) {
+      const j = await jackpotResp.json();
+      document.getElementById("jackpot").innerText = Number(j.jackpot).toFixed(4);
     }
-
-    const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
-    document.getElementById("jackpot").innerText = Number(jackpot.jackpot).toFixed(4);
-
-    const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
-    document.getElementById("burnList").innerHTML = holders.holders.length > 0
-      ? holders.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
-      : "<div class='burn-entry'>Sé el primero en quemar...</div>";
-
-    const winners = await (await fetch(`${BACKEND_URL}/api/winners`)).json();
-    document.getElementById("winnerList").innerHTML = winners.winners.length > 0
-      ? winners.winners.map(w => `<div class="winner-entry">GANADOR ${w.wallet} • ${w.prize} • ${w.tokens} tokens • ${w.time}</div>`).join("")
-      : "<div class='winner-entry'>Primer ganador pronto...</div>";
-
-  } catch (e) { console.log("Cargando datos..."); }
+    if (holdersResp.ok) {
+      const h = await holdersResp.json();
+      document.getElementById("burnList").innerHTML = h.holders.length > 0
+        ? h.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
+        : "<div class='burn-entry'>Sé el primero...</div>";
+    }
+  } catch (e) { console.log("Backend caído, info parcial"); }
 }
 
-// Timer + Modal + Inicio
+// Timer
 let countdown = 300;
 setInterval(() => {
   countdown--; if (countdown <= 0) countdown = 300;
@@ -184,8 +194,11 @@ setInterval(() => {
   document.getElementById("timer").innerText = `${m}:${s}`;
 }, 1000);
 
+// Modal
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
-cargarTodo();
-setInterval(cargarTodo, 8000);
+// INICIAR
+cargarTokenYBalance();
+cargarInfo();
+setInterval(cargarInfo, 12000);
