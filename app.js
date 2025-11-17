@@ -1,48 +1,96 @@
-// app.js — TODO VIENE DEL SPIN.PY EN RAILWAY (NOV 2025)
+// app.js — ARREGLADO: REINTENTOS + FALLBACK TOKEN + SYNC BACKEND (NOV 2025)
+const DEV_WALLET = "HtRMq7DGzHdcuJAXtijCBhLTRAGxxo11BoMSk99Y9jEm";
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
+let tokenInfo = null;
 let countdown = 300;
+let intentosDeteccion = 0;
 
-// === ACTUALIZAR TODO DESDE EL SPIN.PY ===
-async function updateAllFromSpin() {
+// === MOSTRAR WALLET DEV FIJA (mientras carga token) ===
+function mostrarWalletDev() {
+  document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${DEV_WALLET.slice(0,6)}...${DEV_WALLET.slice(-4)}</strong>`;
+  console.log("Wallet dev mostrada fija");
+}
+
+// === DETECTAR TOKEN CON REINTENTOS AGRESIVOS ===
+async function detectarToken() {
   try {
-    // 1. Token + Logo + Mint (todo del spin)
-    const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-    if (token.name && token.name !== "Detectando token...") {
-      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
-      document.title = `${token.name} • Burn to Win`;
-      document.getElementById("tokenLogo").src = token.image;
-      // Wallet del dev también la sacamos del spin (por si cambias de wallet)
-      document.getElementById("devWalletDisplay").innerHTML = 
-        `Dev Wallet: <strong>${token.creator?.slice(0,6)}...${token.creator?.slice(-4) || "HtRMq...9jEm"}</strong>`;
+    console.log(`Intento ${intentosDeteccion + 1}... (reintentando detección)`);
+    const r = await fetch(`https://frontend-api-v3.pump.fun/coins/user-created-coins/${DEV_WALLET}?offset=0&limit=10&includeNsfw=false`);
+    const data = await r.json();
+    console.log("Respuesta pump.fun API:", data);  // Abre F12 para ver logs
+
+    if (data.coins && data.coins.length > 0) {
+      const coin = data.coins[data.coins.length - 1];  // El más reciente
+      tokenInfo = {
+        name: coin.name,
+        symbol: coin.symbol,
+        mint: coin.mint,
+        image: coin.image_uri || "https://i.ibb.co.com/0jZ6g3f/fire.png"
+      };
+
+      // Actualizar página
+      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${tokenInfo.symbol}`;
+      document.title = `${tokenInfo.name} • Burn to Win`;
+      document.getElementById("tokenLogo").src = tokenInfo.image;
+
+      console.log("TOKEN DETECTADO:", tokenInfo);
+      alert(`¡Token detectado! ${tokenInfo.name} ($${tokenInfo.symbol})`);
+      return true;
+    } else {
+      console.log("No token en pump.fun, probando backend...");
+      // Fallback al backend spin.py
+      const backendToken = await (await fetch(`${BACKEND_URL}/api/token`)).json();
+      if (backendToken.name && backendToken.name !== "Detectando...") {
+        tokenInfo = backendToken;
+        document.getElementById("tokenName").innerHTML = `Welcome to burn • $${tokenInfo.symbol}`;
+        document.getElementById("tokenLogo").src = tokenInfo.image;
+        console.log("TOKEN DETECTADO DESDE BACKEND:", tokenInfo);
+        return true;
+      }
+      console.log("No token, reintentando en 15s...");
+      intentosDeteccion++;
+      if (intentosDeteccion < 20) setTimeout(detectarToken, 15000);  // Reintenta en 15s
     }
+  } catch (e) {
+    console.error("Error detección:", e);
+    intentosDeteccion++;
+    if (intentosDeteccion < 20) setTimeout(detectarToken, 15000);
+  }
+  return false;
+}
 
-    // 2. Jackpot real
-    const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
-    document.getElementById("jackpot").innerText = Number(jackpot.jackpot).toFixed(4);
-
-    // 3. Holders / Burn Grid
-    const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
-    document.getElementById("burnList").innerHTML = holders.holders.length > 0
-      ? holders.holders.map((h, i) => 
+// === SYNC CON SPIN.PY (holders, winners, jackpot) ===
+async function updateFromBackend() {
+  try {
+    // Holders / Burn Grid
+    const holdersData = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
+    const grid = document.getElementById("burnList");
+    grid.innerHTML = holdersData.holders.length > 0
+      ? holdersData.holders.map((h, i) => 
           `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`
         ).join("")
-      : `<div class="burn-entry">No holders yet...</div>`;
+      : "<div class='burn-entry'>Cargando holders...</div>";
 
-    // 4. Ganadores
-    const winners = await (await fetch(`${BACKEND_URL}/api/winners`)).json();
-    document.getElementById("winnerList").innerHTML = winners.winners.length > 0
-      ? winners.winners.map(w => 
+    // Winners
+    const winnersData = await (await fetch(`${BACKEND_URL}/api/winners`)).json();
+    const winnerList = document.getElementById("winnerList");
+    winnerList.innerHTML = winnersData.winners.length > 0
+      ? winnersData.winners.map(w => 
           `<div class="winner-entry">GANADOR ${w.wallet} — ${w.prize} | ${w.tokens} tokens | ${w.time}</div>`
         ).join("")
-      : `<div class="winner-entry">Primer ganador pronto...</div>`;
+      : "<div class='winner-entry'>Primer ganador pronto...</div>";
 
-    console.log("Todo actualizado desde spin.py");
+    // Jackpot
+    const jackpotData = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
+    document.getElementById("jackpot").innerText = jackpotData.jackpot.toFixed(4);
+
+    console.log("Sync backend OK");
   } catch (e) {
-    console.log("Spin.py no responde aún... reintentando en 8s");
+    console.error("Error backend:", e);
   }
 }
 
-// Timer local (backup)
+// === TIMER 5 MIN ===
 setInterval(() => {
   countdown--;
   if (countdown <= 0) countdown = 300;
@@ -51,13 +99,9 @@ setInterval(() => {
   document.getElementById("timer").innerText = `${m}:${s}`;
 }, 1000);
 
-// Actualizar cada 8 segundos
-setInterval(updateAllFromSpin, 8000);
-updateAllFromSpin(); // Primera carga inmediata
-
-// Phantom (opcional, solo para el usuario)
+// === PHANTOM ===
 document.getElementById("connectWallet").onclick = async () => {
-  if (!window.solana?.isPhantom) return alert("¡Instala Phantom!");
+  if (!window.solana?.isPhantom) return alert("Instala Phantom!");
   try {
     await window.solana.connect();
     const w = window.solana.publicKey.toString();
@@ -65,11 +109,18 @@ document.getElementById("connectWallet").onclick = async () => {
   } catch { }
 };
 
-// Modal
+// === INICIAR ===
+mostrarWalletDev();
+detectarToken();
+setInterval(detectarToken, 15000);
+setInterval(updateFromBackend, 10000);
+updateFromBackend();
+
+// Partículas y modal
+if (typeof particlesJS === 'function') {
+  particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" } } });
+}
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
-// Partículas
-if (typeof particlesJS === "function") {
-  particlesJS("burnList", { particles: { number: { value: 80 }, color: { value: "#FF4500" } } });
-}
+console.log("PÁGINA INICIADA – Reintentos + sync backend cada 10s...");
