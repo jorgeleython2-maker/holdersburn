@@ -3,94 +3,195 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title id="pageTitle">Welcome to burn • $sdgsdg</title>
+  <title>Burn to Win • $sdgsdg</title>
   <link rel="icon" href="https://i.imgur.com/8f3f8fB.png" />
   <style>
-    body {font-family: 'Inter', sans-serif;background:#000;color:#fff;margin:0;padding:0;overflow-x:hidden;}
-    .container{max-width:1200px;margin:0 auto;padding:20px;}
-    header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid #333;}
-    .title{display:flex;align-items:center;gap:15px;}
-    .fire-icon{width:60px;height:60px;border-radius:50%;object-fit:cover;}
-    h1{margin:0;font-size:28px;}
+    body{font-family:Arial;background:#000;color:#fff;margin:0;padding:20px;text-align:center;}
+    .container{max-width:1000px;margin:auto;}
+    header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;}
+    .logo{width:60px;height:60px;border-radius:50%;}
+    h1{font-size:28px;margin:0;}
     .connect-btn{background:#FF6B00;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;}
-    .dev-wallet{text-align:center;margin:20px 0;padding:15px;background:rgba(255,107,0,0.1);border-radius:12px;color:#FF6B00;font-weight:bold;font-size:16px;}
-    .user-tokens{text-align:center;margin:20px 0;padding:15px;background:rgba(255,107,0,0.15);border-radius:12px;color:#FF6B00;font-size:18px;font-weight:bold;display:none;}
-    .boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin:40px 0;}
-    .box{background:#111;padding:25px;border-radius:12px;border:1px solid #333;}
-    .center-section{text-align:center;margin:40px 0;}
-    .jackpot{font-size:36px;font-weight:bold;color:#FF6B00;}
-    .timer{font-size:28px;margin:20px 0;color:#FF6B00;}
-    .start-burning{background:#FF0000;color:white;border:none;padding:20px 50px;font-size:24px;border-radius:12px;cursor:pointer;font-weight:bold;}
-    .burn-grid,.winners{margin:50px 0;}
-    h2{text-align:center;color:#FF6B00;}
-    .grid{display:grid;gap:12px;margin-top:20px;}
-    .burn-entry,.winner-entry{background:rgba(255,107,0,0.1);padding:16px;border-radius:12px;border-left:5px solid #FF6B00;font-size:15px;}
-    .winner-entry{color:#FFD700;font-weight:bold;}
-    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);justify-content:center;align-items:center;z-index:1000;}
-    .modal-content{background:#111;padding:40px;border-radius:16px;text-align:center;max-width:400px;width:90%;position:relative;border:2px solid #FF6B00;}
-    .close{position:absolute;top:15px;right:20px;font-size:30px;cursor:pointer;color:#aaa;}
-    .presets{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0;}
-    .presets button{background:#333;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;}
-    input{width:100%;padding:18px;margin:20px 0;border-radius:8px;border:none;background:#222;color:white;font-size:18px;text-align:center;}
-    .burn-btn{background:#FF0000;color:white;border:none;padding:20px;width:100%;font-size:24px;border-radius:12px;cursor:pointer;font-weight:bold;margin:20px 0;}
-    .warning{color:#FF6B00;font-size:14px;}
+    .user-tokens{margin:20px 0;padding:15px;background:rgba(255,107,0,0.2);border-radius:12px;font-size:20px;display:none;}
+    .jackpot{font-size:40px;color:#FF6B00;margin:30px 0;}
+    .timer{font-size:32px;color:#FF6B00;margin:20px 0;}
+    .burn-btn{background:#FF0000;color:white;border:none;padding:20px 60px;font-size:28px;border-radius:12px;cursor:pointer;font-weight:bold;}
+    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);justify-content:center;align-items:center;z-index:999;}
+    .modal-content{background:#111;padding:40px;border-radius:16px;max-width:400px;width:90%;border:2px solid #FF6B00;position:relative;}
+    .close{position:absolute;top:10px;right:15px;font-size:30px;cursor:pointer;color:#aaa;}
+    input{width:100%;padding:18px;margin:20px 0;border-radius:8px;background:#222;color:white;font-size:20px;text-align:center;border:none;}
+    .presets button{background:#333;color:white;border:none;padding:12px 20px;border-radius:8px;margin:5px;cursor:pointer;}
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <div class="title">
-        <img id="tokenLogo" src="https://i.imgur.com/8f3f8fB.png" alt="Fuego" class="fire-icon">
-        <div>
-          <h1 id="tokenName">Welcome to burn • $sdgsdg</h1>
-          <p>Burn-to-Win Real • Quema tokens y gana SOL cada 20 segundos</p>
-        </div>
+      <div style="display:flex;align-items:center;gap:15px;">
+        <img src="https://i.imgur.com/8f3f8fB.png" class="logo">
+        <h1>Welcome to burn • $sdgsdg</h1>
       </div>
       <button id="connectWallet" class="connect-btn">Connect Wallet</button>
     </header>
 
-    <div class="dev-wallet" id="devWalletDisplay">Dev Wallet: Cargando...</div>
-    <div class="user-tokens" id="userTokensDisplay">Tienes <strong>0</strong> tokens</div>
-
-    <div class="boxes">
-      <div class="box"><h3>QUEMA REAL</h3><p>Cualquier usuario quema la cantidad que quiera. El dev nunca quema.</p></div>
-      <div class="box"><h3>CÓMO FUNCIONA</h3><ol><li>Conecta tu wallet</li><li>Elige cuántos tokens quemar</li><li>Participas en el sorteo ponderado</li><li>Cada 20 segundos un ganador recibe 0.01 SOL automático</li></ol></div>
-      <div class="box"><h3>PREMIOS AUTOMÁTICOS</h3><ul><li>100% on-chain</li><li>Dev solo cobra fees de pump.fun</li><li>Todo transparente y verificable</li></ul></div>
+    <div class="user-tokens" id="userTokensDisplay">
+      Tienes <strong id="balance">0</strong> $sdgsdg
     </div>
 
-    <div class="center-section">
-      <div class="jackpot">Jackpot Actual: <span id="jackpot">0.0000</span> SOL</div>
-      <div class="timer">Próximo ganador en: <span id="timer">05:00</span></div>
-      <button id="openBurnModal" class="start-burning">QUEMAR TOKENS</button>
-    </div>
-
-    <section class="burn-grid">
-      <h2>Burn Grid • Holders en Vivo</h2>
-      <div id="burnList" class="grid"><div class="burn-entry">Cargando holders...</div></div>
-    </section>
+    <div class="jackpot">Jackpot: <span id="jackpot">0.0000</span> SOL</div>
+    <div class="timer">Próximo ganador en: <span id="timer">05:00</span></div>
+    <button id="openModal" class="burn-btn">QUEMAR TOKENS</button>
   </div>
 
   <div id="burnModal" class="modal">
     <div class="modal-content">
-      <span class="close">×</span>
+      <span class="close">X</span>
       <h2>QUEMAR TOKENS</h2>
-      <p>Elige cuántos tokens quieres quemar</p>
       <div class="presets">
-        <button onclick="document.getElementById('customAmount').value='10000'">10K</button>
-        <button onclick="document.getElementById('customAmount').value='50000'">50K</button>
-        <button onclick="document.getElementById('customAmount').value='100000'">100K</button>
-        <button onclick="document.getElementById('customAmount').value='500000'">500K</button>
-        <button onclick="document.getElementById('customAmount').value='1000000'">1M</button>
+        <button onclick="document.getElementById('amount').value='10000'">10K</button>
+        <button onclick="document.getElementById('amount').value='50000'">50K</button>
+        <button onclick="document.getElementById('amount').value='100000'">100K</button>
+        <button onclick="document.getElementById('amount').value='500000'">500K</button>
       </div>
-      <input type="number" id="customAmount" placeholder="Cantidad exacta (ej: 6969)" min="1" step="1" />
-      <button id="burnNow" class="burn-btn">QUEMAR & PARTICIPAR</button>
-      <p class="warning">Los tokens serán quemados permanentemente • Transacción real en Solana Mainnet</p>
+      <input type="number" id="amount" placeholder="Cantidad exacta" />
+      <button onclick="burnTokens()" style="background:#FF0000;color:white;padding:20px;font-size:24px;width:100%;border:none;border-radius:12px;cursor:pointer;">
+        QUEMAR & PARTICIPAR
+      </button>
+      <p style="color:#FF6B00;font-size:14px;margin-top:20px;">Los tokens serán quemados permanentemente</p>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- CARGAR LIBRERÍAS SOLANA -->
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
-  <script src="app.js"></script>
+
+  <script>
+    // TU MINT REAL (sdgsdg)
+    const MINT = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";
+    const RPCS = [
+      "https://rpc.ankr.com/solana",
+      "https://solana-api.projectserum.com",
+      "https://api.mainnet-beta.solana.com"
+    ];
+
+    let wallet = null;
+    let connection = null;
+
+    // ESPERAR A QUE LAS LIBRERÍAS CARGUEN
+    async function waitForLibs() {
+      while (!window.solanaWeb3 || !window.splToken) await new Promise(r => setTimeout(r, 100));
+      console.log("Librerías cargadas");
+    }
+
+    // CONEXIÓN RÁPIDA
+    async function getConnection() {
+      for (const rpc of RPCS) {
+        try {
+          const conn = new solanaWeb3.Connection(rpc);
+          await conn.getSlot();
+          connection = conn;
+          return conn;
+        } catch (e) {}
+      }
+      connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com");
+      return connection;
+    }
+
+    // CONECTAR WALLET
+    document.getElementById("connectWallet").onclick = async () => {
+      if (!window.solana) return alert("Instala Phantom");
+      try {
+        await window.solana.connect();
+        wallet = window.solana.publicKey.toString();
+        document.getElementById("connectWallet").innerText = wallet.slice(0,6) + "..." + wallet.slice(-4);
+        await waitForLibs();
+        await getConnection();
+        updateBalance();
+      } catch (e) { alert("Cancelado"); }
+    };
+
+    // ACTUALIZAR BALANCE
+    async function updateBalance() {
+      if (!wallet || !connection) return;
+      try {
+        const resp = await fetch(connection._rpcEndpoint, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({
+            jsonrpc: "2.0", id: "1",
+            method: "getTokenAccountsByOwner",
+            params: [wallet, {mint: MINT}, {encoding: "jsonParsed"}]
+          })
+        });
+        const data = await resp.json();
+        let bal = 0;
+        if (data.result?.value?.length > 0) {
+          bal = data.result.value[0].account.data.parsed.info.tokenAmount.uiAmount || 0;
+        }
+        document.getElementById("balance").innerText = Number(bal).toLocaleString();
+        document.getElementById("userTokensDisplay").style.display = "block";
+      } catch (e) {
+        setTimeout(updateBalance, 3000);
+      }
+    }
+
+    // QUEMAR TOKENS
+    window.burnTokens = async () => {
+      if (!wallet) return alert("Conecta tu wallet");
+      const amount = parseFloat(document.getElementById("amount").value);
+      if (!amount || amount <= 0) return alert("Cantidad inválida");
+
+      try {
+        alert(`Quemando ${amount.toLocaleString()} tokens...`);
+
+        const mint = new solanaWeb3.PublicKey(MINT);
+        const owner = new solanaWeb3.PublicKey(wallet);
+        const ata = await splToken.getAssociatedTokenAddress(mint, owner);
+
+        const tx = new solanaWeb3.Transaction();
+        const ataInfo = await connection.getAccountInfo(ata);
+        if (!ataInfo) {
+          tx.add(splToken.createAssociatedTokenAccountInstruction(
+            owner, ata, owner, mint
+          ));
+        }
+
+        tx.add(splToken.createBurnInstruction(
+          ata, mint, owner,
+          BigInt(Math.floor(amount * 1_000_000_000)), // 9 decimales
+          [], splToken.TOKEN_PROGRAM_ID
+        ));
+
+        tx.feePayer = owner;
+        tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+        const signed = await window.solana.signTransaction(tx);
+        const sig = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(sig);
+
+        alert(`¡QUEMADOS ${amount.toLocaleString()} $sdgsdg!\nhttps://solscan.io/tx/${sig}`);
+        document.getElementById("amount").value = "";
+        updateBalance();
+
+      } catch (err) {
+        alert("Error: " + (err.message || "Transacción cancelada"));
+      }
+    };
+
+    // TIMER
+    let time = 300;
+    setInterval(() => {
+      time--; if (time <= 0) time = 300;
+      const m = String(Math.floor(time/60)).padStart(2,"0");
+      const s = String(time%60).padStart(2,"0");
+      document.getElementById("timer").innerText = m + ":" + s;
+    }, 1000);
+
+    // MODAL
+    document.getElementById("openModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
+    document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
+
+    // INICIAR
+    waitForLibs().then(getConnection);
+  </script>
 </body>
 </html>
