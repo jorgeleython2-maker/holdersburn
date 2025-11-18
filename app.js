@@ -1,6 +1,6 @@
-// app.js — QUEMA REAL + 0 ERRORES + PROFESIONAL 2025
+// app.js — QUEMA REAL + 0 ERRORES + FUNCIONA EN VERCEL 100%
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
-const RPCS = ["https://rpc.ankr.com/solana", "https://solana-api.projectserum.com", "https://api.mainnet-beta.solana.com"];
+const RPC = "https://rpc.ankr.com/solana";
 const MINT_FALLBACK = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";
 
 let userWallet = null;
@@ -8,64 +8,57 @@ let tokenMint = MINT_FALLBACK;
 let userBalance = 0;
 let connection = null;
 
-// Esperar que las librerías estén 100% cargadas
-async function waitForSolanaLibs() {
-  while (!window.solanaWeb3 || !window.splToken) {
-    await new Promise(r => setTimeout(r, 50));
-  }
-  console.log("Librerías Solana listas");
+// FORZAR QUE LAS LIBRERÍAS ESTÉN CARGADAS
+function waitForLibs() {
+  return new Promise(resolve => {
+    const check = () => {
+      if (window.solanaWeb3 && window.splToken) {
+        console.log("Librerías listas");
+        resolve();
+      } else {
+        setTimeout(check, 50);
+      }
+    };
+    check();
+  });
 }
 
-// Conexión rápida
-async function getFastConnection() {
-  for (const rpc of RPCS) {
-    try {
-      const conn = new window.solanaWeb3.Connection(rpc);
-      await conn.getSlot();
-      connection = conn;
-      return conn;
-    } catch (e) {}
-  }
-  connection = new window.solanaWeb3.Connection(RPCS[0]);
-  return connection;
-}
-
-// Presets del modal
-window.setAmount = (amt) => document.getElementById("customAmount").value = amt;
-
-// INICIAR TODO
+// INICIAR
 async function init() {
-  await waitForSolanaLibs();
-  await getFastConnection();
+  await waitForLibs();
+  connection = new window.solanaWeb3.Connection(RPC);
+
+  // Presets
+  document.querySelectorAll('.presets button').forEach(btn => {
+    btn.onclick = () => document.getElementById('customAmount').value = btn.dataset.amount;
+  });
 
   // Conectar wallet
   document.getElementById("connectWallet").onclick = async () => {
-    if (!window.solana?.isPhantom) return alert("Instala Phantom Wallet");
+    if (!window.solana?.isPhantom) return alert("Instala Phantom");
     try {
       await window.solana.connect();
       userWallet = window.solana.publicKey.toString();
-      document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
-      cargarTokenInfo();
-    } catch (e) { alert("Conexión cancelada"); }
+      document.getElementById("connectWallet").innerText = userWallet.slice(0,6)+"..."+userWallet.slice(-4);
+      cargarToken();
+    } catch (e) { alert("Cancelado"); }
   };
 
-  // Cargar token + jackpot
-  async function cargarTokenInfo() {
+  // Cargar info del token
+  async function cargarToken() {
     try {
       const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
       if (token.mint) tokenMint = token.mint;
       document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol || "sdgsdg"}`;
       document.getElementById("tokenLogo").src = token.image || "https://i.ibb.co.com/0jZ6g3f/fire.png";
-      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${(token.creator || "").slice(0,6)}...${(token.creator || "").slice(-4)}</strong>`;
+      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${(token.creator||"").slice(0,6)}...${(token.creator||"").slice(-4)}</strong>`;
       if (userWallet) updateBalance();
-    } catch (e) {
-      setTimeout(cargarTokenInfo, 5000);
-    }
+    } catch (e) { setTimeout(cargarToken, 5000); }
   }
 
-  // Actualizar balance
+  // Balance
   window.updateBalance = async () => {
-    if (!userWallet || !tokenMint) return;
+    if (!userWallet) return;
     try {
       const accounts = await connection.getTokenAccountsByOwner(
         new window.solanaWeb3.PublicKey(userWallet),
@@ -76,16 +69,14 @@ async function init() {
         : 0;
       document.getElementById("userBalance").innerText = userBalance.toLocaleString();
       document.getElementById("userTokensDisplay").style.display = "block";
-    } catch (e) {
-      setTimeout(updateBalance, 3000);
-    }
+    } catch (e) { setTimeout(updateBalance, 3000); }
   };
 
-  // QUEMAR TOKENS (100% FUNCIONAL)
+  // QUEMAR
   document.getElementById("burnNow").onclick = async () => {
     if (!userWallet) return alert("Conecta tu wallet");
     const amount = parseFloat(document.getElementById("customAmount").value);
-    if (!amount || amount > userBalance) return alert("Cantidad inválida o insuficiente");
+    if (!amount || amount > userBalance) return alert("Cantidad inválida");
 
     try {
       const mint = new window.solanaWeb3.PublicKey(tokenMint);
@@ -93,15 +84,10 @@ async function init() {
       const ata = await window.splToken.getAssociatedTokenAddress(mint, owner);
 
       const tx = new window.solanaWeb3.Transaction();
-      const ataInfo = await connection.getAccountInfo(ata);
-      if (!ataInfo) {
+      if (!await connection.getAccountInfo(ata)) {
         tx.add(window.splToken.createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
       }
-      tx.add(window.splToken.createBurnInstruction(
-        ata, mint, owner,
-        BigInt(Math.floor(amount * 1_000_000_000)), // 9 decimales
-        [], window.splToken.TOKEN_PROGRAM_ID
-      ));
+      tx.add(window.splToken.createBurnInstruction(ata, mint, owner, BigInt(amount * 1_000_000_000), [], window.splToken.TOKEN_PROGRAM_ID));
 
       tx.feePayer = owner;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
@@ -110,15 +96,15 @@ async function init() {
       const sig = await connection.sendRawTransaction(signed.serialize());
       await connection.confirmTransaction(sig);
 
-      alert(`QUEMADOS ${amount.toLocaleString()} $sdgsdg!\nhttps://solscan.io/tx/${sig}`);
+      alert(`QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
       document.getElementById("customAmount").value = "";
       updateBalance();
     } catch (err) {
-      alert("Error: " + (err.message || "Transacción cancelada"));
+      alert("Error: " + (err.message || "Cancelado"));
     }
   };
 
-  // Modal y timer
+  // Modal + Timer
   document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
   document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
@@ -130,10 +116,8 @@ async function init() {
     document.getElementById("timer").innerText = m + ":" + s;
   }, 1000);
 
-  // Iniciar
-  cargarTokenInfo();
-  setInterval(cargarTokenInfo, 10000);
+  cargarToken();
+  setInterval(cargarToken, 10000);
 }
 
-// ARRANCAR
 init();
