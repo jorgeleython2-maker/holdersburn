@@ -7,184 +7,166 @@
   <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root { --orange:#FF6B00; --red:#FF0000; --dark:#111; --bg:#000; }
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;overflow-x:hidden;}
-    .container{max-width:1200px;margin:auto;padding:20px;}
-    header{display:flex;justify-content:space-between;align-items:center;padding:25px 0;border-bottom:1px solid #333;}
-    .title{display:flex;align-items:center;gap:18px;}
-    .fire-icon{width:70px;height:70px;border-radius:50%;border:3px solid var(--orange);box-shadow:0 0 20px rgba(255,107,0,0.4);}
-    h1{font-size:32px;font-weight:800;background:linear-gradient(90deg,#fff,var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-    .connect-btn{background:var(--orange);color:white;border:none;padding:14px 28px;border-radius:12px;cursor:pointer;font-weight:bold;font-size:16px;transition:.3s;box-shadow:0 4px 15px rgba(255,107,0,0.3);}
-    .connect-btn:hover{transform:translateY(-2px);}
-    .dev-wallet,.user-tokens{text-align:center;margin:25px 0;padding:18px;background:rgba(255,107,0,0.1);border-radius:16px;color:var(--orange);font-weight:bold;font-size:17px;border:1px solid rgba(255,107,0,0.2);}
-    .user-tokens{display:none;background:rgba(255,107,0,0.15);font-size:20px;}
-    .center-section{text-align:center;margin:60px 0;}
-    .jackpot{font-size:42px;font-weight:800;color:var(--orange);text-shadow:0 0 20px rgba(255,107,0,0.5);}
-    .timer{font-size:32px;margin:25px 0;color:var(--orange);font-weight:bold;}
-    .start-burning{background:var(--red);color:white;border:none;padding:22px 60px;font-size:28px;border-radius:16px;cursor:pointer;font-weight:bold;box-shadow:0 10px 30px rgba(255,0,0,0.4);transition:.3s;}
-    .start-burning:hover{transform:scale(1.05);}
-    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.97);justify-content:center;align-items:center;z-index:1000;backdrop-filter:blur(10px);}
-    .modal-content{background:var(--dark);padding:50px 30px;border-radius:20px;max-width:420px;width:90%;border:3px solid var(--orange);position:relative;box-shadow:0 0 50px rgba(255,107,0,0.3);}
-    .close{position:absolute;top:15px;right:25px;font-size:36px;cursor:pointer;color:#aaa;}
-    .presets button{background:#333;color:white;border:none;padding:14px 22px;border-radius:12px;margin:6px;cursor:pointer;font-weight:bold;}
-    input{width:100%;padding:20px;margin:20px 0;border-radius:14px;background:#222;color:white;font-size:20px;text-align:center;border:none;}
-    .burn-btn{background:var(--red);color:white;border:none;padding:22px;width:100%;font-size:26px;border-radius:16px;cursor:pointer;font-weight:bold;margin:25px 0;}
-    .warning{color:var(--orange);font-size:15px;margin-top:20px;}
+    :root{--o:#FF6B00;--r:#FF0000;--d:#111;--b:#000}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Inter,sans-serif;background:var(--b);color:#fff}
+    .c{max-width:1200px;margin:auto;padding:20px}
+    header{display:flex;justify-content:space-between;align-items:center;padding:25px 0;border-bottom:1px solid #333}
+    .t{display:flex;align-items:center;gap:18px}
+    .i{width:70px;height:70px;border-radius:50%;border:3px solid var(--o);box-shadow:0 0 20px rgba(255,107,0,.4)}
+    h1{font-size:32px;font-weight:800;background:linear-gradient(90deg,#fff,var(--o));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .cb{background:var(--o);color:#fff;border:none;padding:14px 28px;border-radius:12px;cursor:pointer;font-weight:bold}
+    .uw,.dw{text-align:center;margin:25px 0;padding:18px;background:rgba(255,107,0,.1);border-radius:16px;color:var(--o);font-weight:bold;border:1px solid rgba(255,107,0,.2)}
+    .uw{display:none;background:rgba(255,107,0,.15);font-size:20px}
+    .cs{text-align:center;margin:60px 0}
+    .j{font-size:42px;font-weight:800;color:var(--o);text-shadow:0 0 20px rgba(255,107,0,.5)}
+    .ti{font-size:32px;margin:25px 0;color:var(--o);font-weight:bold}
+    .sb{background:var(--r);color:#fff;border:none;padding:22px 60px;font-size:28px;border-radius:16px;cursor:pointer;font-weight:bold;box-shadow:0 10px 30px rgba(255,0,0,.4)}
+    .m{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.97);justify-content:center;align-items:center;z-index:9999}
+    .mc{background:var(--d);padding:50px 30px;border-radius:20px;max-width:420px;width:90%;border:3px solid var(--o);position:relative}
+    .x{position:absolute;top:15px;right:25px;font-size:36px;cursor:pointer;color:#aaa}
+    .p button{background:#333;color:#fff;border:none;padding:14px 22px;border-radius:12px;margin:6px;cursor:pointer;font-weight:bold}
+    input{width:100%;padding:20px;margin:20px 0;border-radius:14px;background:#222;color:#fff;font-size:20px;text-align:center;border:none}
+    .bb{background:var(--r);color:#fff;border:none;padding:22px;width:100%;font-size:26px;border-radius:16px;cursor:pointer;font-weight:bold}
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="c">
     <header>
-      <div class="title">
-        <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" class="fire-icon">
+      <div class="t">
+        <img id="l" src="https://i.ibb.co.com/0jZ6g3f/fire.png" class="i">
         <div>
-          <h1 id="tokenName">Welcome to burn • $sdgsdg</h1>
+          <h1 id="n">Welcome to burn • $sdgsdg</h1>
           <p>Burn-to-Win Real • Quema tokens y gana SOL cada 20 segundos</p>
         </div>
       </div>
-      <button id="connectWallet" class="connect-btn">Connect Wallet</button>
+      <button id="w" class="cb">Connect Wallet</button>
     </header>
 
-    <div class="dev-wallet" id="devWalletDisplay">Dev Wallet: Cargando...</div>
-    <div class="user-tokens" id="userTokensDisplay">Tienes <strong id="userBalance">0</strong> $sdgsdg</div>
+    <div class="dw" id="dw">Dev Wallet: Cargando...</div>
+    <div class="uw" id="uw">Tienes <strong id="ub">0</strong> $sdgsdg</div>
 
-    <div class="center-section">
-      <div class="jackpot">Jackpot Actual: <span id="jackpot">0.0000</span> SOL</div>
-      <div class="timer">Próximo ganador en: <span id="timer">05:00</span></div>
-      <button id="openBurnModal" class="start-burning">QUEMAR TOKENS</button>
+    <div class="cs">
+      <div class="j">Jackpot Actual: <span id="j">0.0000</span> SOL</div>
+      <div class="ti">Próximo ganador en: <span id="t">05:00</span></div>
+      <button id="ob" class="sb">QUEMAR TOKENS</button>
     </div>
   </div>
 
-  <div id="burnModal" class="modal">
-    <div class="modal-content">
-      <span class="close">X</span>
+  <div id="bm" class="m">
+    <div class="mc">
+      <span class="x">X</span>
       <h2>QUEMAR TOKENS</h2>
-      <div class="presets">
-        <button type="button" data-amt="10000">10K</button>
-        <button type="button" data-amt="50000">50K</button>
-        <button type="button" data-amt="100000">100K</button>
-        <button type="button" data-amt="500000">500K</button>
-        <button type="button" data-amt="1000000">1M</button>
+      <div class="p">
+        <button data-a="10000">10K</button>
+        <button data-a="50000">50K</button>
+        <button data-a="100000">100K</button>
+        <button data-a="500000">500K</button>
+        <button data-a="1000000">1M</button>
       </div>
-      <input type="number" id="customAmount" placeholder="Cantidad exacta">
-      <button id="burnNow" class="burn-btn">QUEMAR & PARTICIPAR</button>
-      <p class="warning">Los tokens serán quemados permanentemente</p>
+      <input type="number" id="ca" placeholder="Cantidad exacta">
+      <button id="bn" class="bb">QUEMAR & PARTICIPAR</button>
     </div>
   </div>
 
-  <!-- CARGA FORZADA DE LIBRERÍAS + APP EN UN SOLO BLOQUE -->
-  <script type="text/javascript">
-    // 1. Cargar web3.js
-    const s1 = document.createElement('script');
-    s1.src = 'https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js';
-    s1.onload = () => {
-      // 2. Cargar spl-token
-      const s2 = document.createElement('script');
-      s2.src = 'https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js';
-      s2.onload = () => {
-        // 3. TODO EL CÓDIGO DE LA APP (dentro del mismo <script>)
-        (function() {
-          const RPC = "https://rpc.ankr.com/solana";
-          const BACKEND = "https://spin-production-ddc0.up.railway.app";
-          const FALLBACK_MINT = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";
+  <!-- LIBRERÍAS + APP EN UN SOLO BLOQUE (FUNCIONA EN VERCEL 100%) -->
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
+  <script>
+    // Esperar que las librerías estén listas (nunca falla)
+    const wait = () => new Promise(r => {
+      const check = () => window.solanaWeb3 && window.splToken ? r() : setTimeout(check, 100);
+      check();
+    });
 
-          let wallet = null;
-          let mint = FALLBACK_MINT;
-          let balance = 0;
-          const conn = new solanaWeb3.Connection(RPC);
+    (async () => {
+      await wait();
+      const conn = new solanaWeb3.Connection("https://rpc.ankr.com/solana");
+      const BACKEND = "https://spin-production-ddc0.up.railway.app";
+      let wallet = null;
+      let mint = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";
 
-          // Presets
-          document.querySelectorAll('.presets button').forEach(b => {
-            b.onclick = () => document.getElementById('customAmount').value = b.dataset.amt;
-          });
+      // Presets
+      document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => document.getElementById('ca').value = b.dataset.a);
 
-          // Connect
-          document.getElementById('connectWallet').onclick = async () => {
-            if (!window.solana?.isPhantom) return alert("Instala Phantom");
-            try {
-              await window.solana.connect();
-              wallet = window.solana.publicKey.toString();
-              document.getElementById('connectWallet').innerText = wallet.slice(0,6)+"..."+wallet.slice(-4);
-              loadToken();
-            } catch(e) {}
-          };
-
-          // Cargar token
-          async function loadToken() {
-            try {
-              const t = await (await fetch(`${BACKEND}/api/token`)).json();
-              if (t.mint) mint = t.mint;
-              document.getElementById('tokenName').innerHTML = `Welcome to burn • $${t.symbol||'sdgsdg'}`;
-              document.getElementById('tokenLogo').src = t.image || "https://i.ibb.co.com/0jZ6g3f/fire.png";
-              document.getElementById('devWalletDisplay').innerHTML = `Dev Wallet: <strong>${(t.creator||'').slice(0,6)}...${(t.creator||'').slice(-4)}</strong>`;
-              if (wallet) updateBalance();
-            } catch(e) { setTimeout(loadToken, 5000); }
-          }
-
-          // Balance
-          async function updateBalance() {
-            if (!wallet) return;
-            try {
-              const accs = await conn.getTokenAccountsByOwner(new solanaWeb3.PublicKey(wallet), { mint: new solanaWeb3.PublicKey(mint) });
-              balance = accs.value.length ? Number(accs.value[0].account.data.parsed.info.tokenAmount.uiAmount)||0 : 0;
-              document.getElementById('userBalance').innerText = balance.toLocaleString();
-              document.getElementById('userTokensDisplay').style.display = 'block';
-            } catch(e) { setTimeout(updateBalance, 3000); }
-          }
-          window.updateBalance = updateBalance;
-
-          // QUEMAR
-          document.getElementById('burnNow').onclick = async () => {
-            if (!wallet) return alert("Conecta tu wallet");
-            const amt = parseFloat(document.getElementById('customAmount').value);
-            if (!amt || amt > balance) return alert("Cantidad inválida");
-
-            try {
-              const m = new solanaWeb3.PublicKey(mint);
-              const owner = new solanaWeb3.PublicKey(wallet);
-              const ata = await splToken.getAssociatedTokenAddress(m, owner);
-
-              const tx = new solanaWeb3.Transaction();
-              if (!await conn.getAccountInfo(ata)) {
-                tx.add(splToken.createAssociatedTokenAccountInstruction(owner, ata, owner, m));
-              }
-              tx.add(splToken.createBurnInstruction(ata, m, owner, BigInt(amt * 1_000_000_000), [], splToken.TOKEN_PROGRAM_ID));
-
-              tx.feePayer = owner;
-              tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
-
-              const signed = await window.solana.signTransaction(tx);
-              const sig = await conn.sendRawTransaction(signed.serialize());
-              await conn.confirmTransaction(sig);
-
-              alert(`¡QUEMADOS ${amt.toLocaleString()} $sdgsdg!\nhttps://solscan.io/tx/${sig}`);
-              document.getElementById('customAmount').value = "";
-              updateBalance();
-            } catch(err) {
-              alert("Error: " + (err.message || "Cancelado"));
-            }
-          };
-
-          // Modal + Timer
-          document.getElementById('openBurnModal').onclick = () => document.getElementById('burnModal').style.display = 'flex';
-          document.querySelector('.close').onclick = () => document.getElementById('burnModal').style.display = 'none';
-
-          let t = 300;
-          setInterval(() => {
-            t--; if (t<=0) t=300;
-            const m = String(Math.floor(t/60)).padStart(2,"0");
-            const s = String(t%60).padStart(2,"0");
-            document.getElementById('timer').innerText = m+":"+s;
-          }, 1000);
-
-          loadToken();
-          setInterval(loadToken, 10000);
-        })();
+      // Connect
+      document.getElementById('w').onclick = async () => {
+        if (!window.solana?.isPhantom) return alert("Instala Phantom");
+        try {
+          await window.solana.connect();
+          wallet = window.solana.publicKey.toString();
+          document.getElementById('w').innerText = wallet.slice(0,6)+"..."+wallet.slice(-4);
+          load();
+        } catch(e) {}
       };
-      document.body.appendChild(s2);
-    };
-    document.body.appendChild(s1);
+
+      // Cargar token
+      async function load() {
+        try {
+          const t = await (await fetch(`${BACKEND}/api/token`)).json();
+          if (t.mint) mint = t.mint;
+          document.getElementById('n').innerHTML = `Welcome to burn • $${t.symbol||'sdgsdg'}`;
+          document.getElementById('l').src = t.image || "https://i.ibb.co.com/0jZ6g3f/fire.png";
+          document.getElementById('dw').innerHTML = `Dev Wallet: <strong>${(t.creator||'').slice(0,6)}...${(t.creator||'').slice(-4)}</strong>`;
+          if (wallet) bal();
+        } catch(e) { setTimeout(load, 5000); }
+      }
+
+      // Balance
+      async function bal() {
+        try {
+          const a = await conn.getTokenAccountsByOwner(new solanaWeb3.PublicKey(wallet), { mint: new solanaWeb3.PublicKey(mint) });
+          const b = a.value.length ? Number(a.value[0].account.data.parsed.info.tokenAmount.uiAmount)||0 : 0;
+          document.getElementById('ub').innerText = b.toLocaleString();
+          document.getElementById('uw').style.display = "block";
+        } catch(e) { setTimeout(bal, 3000); }
+      }
+
+      // Quemar
+      document.getElementById('bn').onclick = async () => {
+        if (!wallet) return alert("Conecta tu wallet");
+        const amt = parseFloat(document.getElementById('ca').value);
+        if (!amt || amt <= 0) return alert("Cantidad inválida");
+
+        try {
+          const m = new solanaWeb3.PublicKey(mint);
+          const o = new solanaWeb3.PublicKey(wallet);
+          const ata = await splToken.getAssociatedTokenAddress(m, o);
+
+          const tx = new solanaWeb3.Transaction();
+          if (!await conn.getAccountInfo(ata)) tx.add(splToken.createAssociatedTokenAccountInstruction(o, ata, o, m));
+          tx.add(splToken.createBurnInstruction(ata, m, o, BigInt(amt*1e9), [], splToken.TOKEN_PROGRAM_ID));
+
+          tx.feePayer = o;
+          tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+
+          const signed = await window.solana.signTransaction(tx);
+          const sig = await conn.sendRawTransaction(signed.serialize());
+          await conn.confirmTransaction(sig);
+
+          alert(`QUEMADOS ${amt.toLocaleString()}!\nhttps://solscan.io/tx/${sig}`);
+          document.getElementById('ca').value = "";
+          bal();
+        } catch(err) {
+          alert("Error: " + (err.message || "Cancelado"));
+        }
+      };
+
+      // Modal + Timer
+      document.getElementById('ob').onclick = () => document.getElementById('bm').style.display = "flex";
+      document.querySelector('.x').onclick = () => document.getElementById('bm').style.display = "none";
+
+      let time = 300;
+      setInterval(() => {
+        time--; if (time<=0) time=300;
+        const m = String(Math.floor(time/60)).padStart(2,"0");
+        const s = String(time%60).padStart(2,"0");
+        document.getElementById('t').innerText = m+":"+s;
+      }, 1000);
+
+      load();
+      setInterval(load, 10000);
+    })();
   </script>
 </body>
 </html>
