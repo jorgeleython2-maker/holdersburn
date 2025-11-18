@@ -1,11 +1,14 @@
-// app.js — FALLBACK A MINT REAL + QUEMA 100% (NOV 2025)
+// app.js — FALLBACK + REINTENTOS + QUEMA 100% (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
+const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736";
 const FALLBACK_MINT = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";  // Tu mint sdgsdg
 const FALLBACK_SYMBOL = "sdgsdg";
 
 let userWallet = null;
 let tokenMint = FALLBACK_MINT;  // Fallback inmediato
 let userTokenBalance = 0;
+let intentosBackend = 0;
+let intentosBalance = 0;
 
 // === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
@@ -17,18 +20,55 @@ document.getElementById("connectWallet").onclick = async () => {
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
     console.log("Wallet conectada:", userWallet);
 
-    detectarTokensUsuario();  // Usa fallback mint
+    detectarTokenConReintentos();
   } catch (err) {
     console.log("Conexión cancelada");
   }
 };
 
-// === DETECTAR BALANCE ===
+// === DETECTAR TOKEN CON REINTENTOS ===
+async function detectarTokenConReintentos() {
+  intentosBackend++;
+  console.log(`Intento backend ${intentosBackend}...`);
+
+  try {
+    const resp = await fetch(`${BACKEND_URL}/api/token`, { signal: AbortSignal.timeout(10000) });
+    const data = await resp.json();
+    console.log("Backend respuesta:", data);
+
+    if (data.mint && data.mint !== "undefined") {
+      tokenMint = data.mint;
+      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${data.symbol}`;
+      document.getElementById("tokenLogo").src = data.image || "https://i.imgur.com/8f3f8fB.png";
+      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${data.creator.slice(0,6)}...${data.creator.slice(-4)}</strong>`;
+      console.log("TOKEN DETECTADO:", data.name);
+      detectarTokensUsuario();  // Ahora detecta balance
+      return;
+    }
+  } catch (e) {
+    console.error("Backend error:", e);
+  }
+
+  // FALLBACK A TU MINT REAL
+  console.log("Usando mint de respaldo:", FALLBACK_MINT);
+  document.getElementById("tokenName").innerHTML = `Welcome to burn • $${FALLBACK_SYMBOL}`;
+  document.getElementById("tokenLogo").src = "https://i.imgur.com/8f3f8fB.png";
+  document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>HtRMq...9jEm</strong>`;
+  detectarTokensUsuario();  // Detecta balance con fallback
+
+  // Reintenta backend cada 15s (máx 10 intentos)
+  if (intentosBackend < 10) setTimeout(detectarTokenConReintentos, 15000);
+}
+
+// === DETECTAR BALANCE CON REINTENTOS ===
 async function detectarTokensUsuario() {
+  intentosBalance++;
+  console.log(`Intento balance ${intentosBalance}...`);
+
   if (!userWallet) return;
 
   try {
-    const resp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
+    const resp = await fetch(HELIUS_RPC, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -38,6 +78,8 @@ async function detectarTokensUsuario() {
       })
     });
     const data = await resp.json();
+    console.log("Respuesta RPC:", data);
+
     userTokenBalance = 0;
 
     if (data.result?.value?.length > 0) {
@@ -47,14 +89,23 @@ async function detectarTokensUsuario() {
           userTokenBalance += Number(info.tokenAmount.uiAmount);
         }
       });
+      console.log("Balance detectado:", userTokenBalance);
+    } else {
+      console.log("No ATA encontrada – reintentando...");
     }
 
     const display = document.getElementById("userTokensDisplay") || crearDisplayTokens();
-    display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${FALLBACK_SYMBOL}</strong>`;
+    display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} tokens</strong>`;
     display.style.display = "block";
 
-  } catch (err) { 
-    console.error("Error detectando balance:", err); 
+    // Reintenta si balance es 0 (indexación lenta)
+    if (userTokenBalance === 0 && intentosBalance < 10) {
+      setTimeout(detectarTokensUsuario, 3000);
+    }
+
+  } catch (err) {
+    console.error("Error RPC:", err);
+    if (intentosBalance < 10) setTimeout(detectarTokensUsuario, 3000);
   }
 }
 
@@ -69,6 +120,7 @@ function crearDisplayTokens() {
 // === QUEMA REAL ===
 document.getElementById("burnNow").onclick = async () => {
   if (!userWallet) return alert("Conecta tu wallet");
+  if (!tokenMint) return alert("Token no detectado");
   if (userTokenBalance <= 0) return alert("No tienes tokens");
 
   const amount = parseFloat(document.getElementById("customAmount").value);
@@ -78,7 +130,7 @@ document.getElementById("burnNow").onclick = async () => {
   const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
 
   try {
-    alert(`Quemando ${amount.toLocaleString()} $${FALLBACK_SYMBOL}...`);
+    alert(`Quemando ${amount.toLocaleString()} tokens...`);
 
     const connection = new Connection("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736");
     const mint = new PublicKey(tokenMint);
@@ -102,7 +154,7 @@ document.getElementById("burnNow").onclick = async () => {
     const sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig);
 
-    alert(`¡QUEMADOS ${amount.toLocaleString()} $${FALLBACK_SYMBOL}!\nhttps://solscan.io/tx/${sig}`);
+    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
     document.getElementById("customAmount").value = "";
     detectarTokensUsuario();
 
@@ -112,7 +164,7 @@ document.getElementById("burnNow").onclick = async () => {
   }
 };
 
-// === CARGAR INFO ===
+// CARGAR INFO
 async function cargarTodo() {
   try {
     const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
@@ -135,7 +187,7 @@ async function cargarTodo() {
   } catch (e) { console.log("Cargando datos..."); }
 }
 
-// Timer + Modal
+// TIMER
 let countdown = 300;
 setInterval(() => {
   countdown--; if (countdown <= 0) countdown = 300;
@@ -144,6 +196,7 @@ setInterval(() => {
   document.getElementById("timer").innerText = `${m}:${s}`;
 }, 1000);
 
+// MODAL
 document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
 document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
