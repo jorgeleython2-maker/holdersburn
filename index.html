@@ -3,43 +3,236 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title id="pageTitle">Welcome to burn • Detecting...</title>
-  <link rel="stylesheet" href="style.css" />
+  <title id="pageTitle">Welcome to burn • Detectando token...</title>
+  <meta name="description" content="Burn-to-Win Real • Quema tokens y gana SOL cada 20 segundos • 100% on-chain"/>
   <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  
   <style>
-    body { font-family: 'Inter', sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
+    :root {
+      --orange: #FF6B00;
+      --red: #FF0000;
+      --dark: #111;
+      --bg: #000;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: var(--bg); 
+      color: #fff; 
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #333; }
-    .title { display: flex; align-items: center; gap: 15px; }
-    .fire-icon { width: 60px; height: 60px; border-radius: 50%; }
-    h1 { margin: 0; font-size: 28px; }
-    .connect-btn { background: #FF6B00; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    .dev-wallet { text-align: center; margin: 20px 0; padding: 15px; background: rgba(255,107,0,0.1); border-radius: 12px; color: #FF6B00; font-weight: bold; font-size: 16px; }
-    .boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 40px 0; }
-    .box { background: #111; padding: 25px; border-radius: 12px; border: 1px solid #333; }
-    .center-section { text-align: center; margin: 40px 0; }
-    .jackpot { font-size: 36px; font-weight: bold; color: #FF6B00; }
-    .timer { font-size: 28px; margin: 20px 0; color: #FF6B00; }
-    .start-burning { background: #FF0000; color: white; border: none; padding: 20px 50px; font-size: 24px; border-radius: 12px; cursor: pointer; font-weight: bold; }
-    .burn-grid, .winners { margin: 50px 0; }
-    h2 { text-align: center; color: #FF6B00; }
-    .grid { display: grid; gap: 12px; margin-top: 20px; }
+
+    /* Header */
+    header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 25px 0; 
+      border-bottom: 1px solid #333; 
+    }
+    .title { display: flex; align-items: center; gap: 18px; }
+    .fire-icon { 
+      width: 70px; 
+      height: 70px; 
+      border-radius: 50%; 
+      border: 3px solid var(--orange);
+      box-shadow: 0 0 20px rgba(255,107,0,0.4);
+    }
+    h1 { 
+      font-size: 32px; 
+      font-weight: 800; 
+      background: linear-gradient(90deg, #fff, var(--orange));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { font-size: 16px; opacity: 0.9; margin-top: 4px; }
+
+    .connect-btn { 
+      background: var(--orange); 
+      color: white; 
+      border: none; 
+      padding: 14px 28px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      font-size: 16px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(255,107,0,0.3);
+    }
+    .connect-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,0,0.5); }
+
+    /* Dev Wallet & User Tokens */
+    .dev-wallet, .user-tokens {
+      text-align: center;
+      margin: 25px 0;
+      padding: 18px;
+      background: rgba(255,107,0,0.1);
+      border-radius: 16px;
+      color: var(--orange);
+      font-weight: bold;
+      font-size: 17px;
+      border: 1px solid rgba(255,107,0,0.2);
+    }
+    .user-tokens { display: none; background: rgba(255,107,0,0.15); font-size: 20px; }
+
+    /* Info Boxes */
+    .boxes { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+      gap: 25px; 
+      margin: 50px 0; 
+    }
+    .box { 
+      background: var(--dark); 
+      padding: 30px; 
+      border-radius: 16px; 
+      border: 1px solid #333; 
+      transition: transform 0.3s;
+    }
+    .box:hover { transform: translateY(-8px); border-color: var(--orange); }
+    .box h3 { color: var(--orange); margin-bottom: 15px; font-size: 20px; }
+
+    /* Center Section */
+    .center-section { text-align: center; margin: 60px 0; }
+    .jackpot { 
+      font-size: 42px; 
+      font-weight: 800; 
+      color: var(--orange); 
+      text-shadow: 0 0 20px rgba(255,107,0,0.5);
+    }
+    .timer { 
+      font-size: 32px; 
+      margin: 25px 0; 
+      color: var(--orange); 
+      font-weight: bold;
+    }
+    .start-burning { 
+      background: var(--red); 
+      color: white; 
+      border: none; 
+      padding: 22px 60px; 
+      font-size: 28px; 
+      border-radius: 16px; 
+      cursor: pointer; 
+      font-weight: bold;
+      box-shadow: 0 10px 30px rgba(255,0,0,0.4);
+      transition: all 0.3s;
+    }
+    .start-burning:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(255,0,0,0.6); }
+
+    /* Grids */
+    .burn-grid, .winners { margin: 70px 0; }
+    h2 { 
+      text-align: center; 
+      color: var(--orange); 
+      font-size: 28px; 
+      margin-bottom: 30px;
+      text-shadow: 0 0 10px rgba(255,107,0,0.3);
+    }
+    .grid { display: grid; gap: 14px; margin-top: 20px; }
     .burn-entry, .winner-entry {
       background: rgba(255,107,0,0.1);
-      padding: 16px;
-      border-radius: 12px;
-      border-left: 5px solid #FF6B00;
-      font-size: 15px;
+      padding: 18px;
+      border-radius: 14px;
+      border-left: 6px solid var(--orange);
+      font-size: 16px;
+      transition: all 0.3s;
     }
-    .winner-entry { color: #FFD700; font-weight: bold; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: #111; padding: 40px; border-radius: 16px; text-align: center; max-width: 400px; width: 90%; position: relative; border: 2px solid #FF6B00; }
-    .close { position: absolute; top: 15px; right: 20px; font-size: 30px; cursor: pointer; color: #aaa; }
-    .presets { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
-    .presets button { background: #333; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    input { width: 100%; padding: 18px; margin: 20px 0; border-radius: 8px; border: none; background: #222; color: white; font-size: 18px; text-align: center; }
-    .burn-btn { background: #FF0000; color: white; border: none; padding: 20px; width: 100%; font-size: 24px; border-radius: 12px; cursor: pointer; font-weight: bold; margin: 20px 0; }
-    .warning { color: #FF6B00; font-size: 14px; }
+    .burn-entry:hover, .winner-entry:hover { background: rgba(255,107,0,0.2); transform: translateX(5px); }
+    .winner-entry { color: #FFD700; font-weight: bold; border-left-color: #FFD700; }
+
+    /* Modal */
+    .modal { 
+      display: none; 
+      position: fixed; 
+      top: 0; left: 0; 
+      width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.97); 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+    .modal-content { 
+      background: var(--dark); 
+      padding: 50px 30px; 
+      border-radius: 20px; 
+      text-align: center; 
+      max-width: 420px; 
+      width: 90%; 
+      position: relative; 
+      border: 3px solid var(--orange);
+      box-shadow: 0 0 50px rgba(255,107,0,0.3);
+    }
+    .close { 
+      position: absolute; 
+      top: 15px; right: 25px; 
+      font-size: 36px; 
+      cursor: pointer; 
+      color: #aaa; 
+      transition: color 0.3s;
+    }
+    .close:hover { color: var(--red); }
+    .presets { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 12px; 
+      justify-content: center; 
+      margin: 25px 0; 
+    }
+    .presets button { 
+      background: #333; 
+      color: white; 
+      border: none; 
+      padding: 14px 22px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    .presets button:hover { background: var(--orange); transform: scale(1.05); }
+    input { 
+      width: 100%; 
+      padding: 20px; 
+      margin: 20px 0; 
+      border-radius: 14px; 
+      border: none; 
+      background: #222; 
+      color: white; 
+      font-size: 20px; 
+      text-align: center;
+    }
+    .burn-btn { 
+      background: var(--red); 
+      color: white; 
+      border: none; 
+      padding: 22px; 
+      width: 100%; 
+      font-size: 26px; 
+      border-radius: 16px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      margin: 25px 0;
+      box-shadow: 0 8px 25px rgba(255,0,0,0.4);
+    }
+    .burn-btn:hover { transform: translateY(-3px); }
+    .warning { 
+      color: var(--orange); 
+      font-size: 15px; 
+      margin-top: 20px;
+      opacity: 0.9;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      h1 { font-size: 26px; }
+      .jackpot { font-size: 32px; }
+      .start-burning { font-size: 22px; padding: 18px 40px; }
+      .modal-content { padding: 40px 20px; }
+    }
   </style>
 </head>
 <body>
@@ -50,8 +243,8 @@
       <div class="title">
         <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="Token Logo" class="fire-icon">
         <div>
-          <h1 id="tokenName">Welcome to burn • Detecting token...</h1>
-          <p>The Weighted Burn-to-Win Lottery • Real Burn • Real Winners</p>
+          <h1 id="tokenName">Welcome to burn • Detectando token...</h1>
+          <p class="subtitle">Burn-to-Win Real • Quema tokens y gana SOL cada 20 segundos</p>
         </div>
       </div>
       <button id="connectWallet" class="connect-btn">Connect Wallet</button>
@@ -62,28 +255,33 @@
       Dev Wallet: Cargando...
     </div>
 
+    <!-- User Tokens -->
+    <div class="user-tokens" id="userTokensDisplay">
+      Tienes <strong id="userBalance">0</strong> tokens
+    </div>
+
     <!-- Info Boxes -->
     <div class="boxes">
-      <div class="box lottery">
+      <div class="box">
         <h3>QUEMA REAL</h3>
-        <p>Cualquier usuario quema la cantidad que quiera. Nunca el dev. 100% transparente.</p>
+        <p>Cualquier usuario quema la cantidad que quiera. El dev nunca quema. 100% transparente.</p>
       </div>
-      <div class="box how">
-        <h3>Cómo Funciona</h3>
+      <div class="box">
+        <h3>CÓMO FUNCIONA</h3>
         <ol>
-          <li>Conecta Phantom</li>
-          <li>Elige cantidad y quema</li>
-          <li>Entras al Burn Grid</li>
+          <li>Conecta tu wallet Phantom</li>
+          <li>Elige cuántos tokens quemar</li>
+          <li>Entras al sorteo ponderado</li>
           <li>Cada 20 segundos un ganador recibe 0.01 SOL automático</li>
         </ol>
       </div>
-      <div class="box features">
-        <h3>Características</h3>
+      <div class="box">
+        <h3>PREMIOS AUTOMÁTICOS</h3>
         <ul>
-          <li>Quema real de tokens</li>
-          <li>Envío automático de premios</li>
-          <li>100% sincronizado con spin.py</li>
+          <li>100% on-chain</li>
           <li>Dev solo cobra fees de pump.fun</li>
+          <li>Todo verificable en Solscan</li>
+          <li>Jackpot crece con cada quema</li>
         </ul>
       </div>
     </div>
@@ -112,144 +310,7 @@
     </section>
   </div>
 
-  <!-- Modal de Quema Real -->
-  <div id="burnModal" class="modal">
-    <div class="modal-content">
-      <span class="close">×</span>
-      <h2>QUEMAR TOKENS</h2>
-      <p>Elige la cantidad exacta que quieres quemar</p>
-      <div class="presets">
-        <button onclick="document.getElementById('customAmount').value='10000'">10K</button>
-        <button onclick="document.getElementById('customAmount').value='50000'">50K</button>
-        <button onclick="document.getElementById('customAmount').value='100000'">100K</button>
-        <button onclick="document.getElementById('customAmount').value='500000'">500K</button>
-        <button onclick="document.getElementById('customAmount').value='1000000'">1M</button>
-      </div>
-      <input type="number" id="customAmount" placeholder="Cantidad exacta (ej: 6969)" min="1" step="1" />
-      <button id="burnNow" class="burn-btn">QUEMAR & PARTICIPAR</button>
-      <p class="warning">Los tokens serán quemados permanentemente • Acción irreversible</p>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js"></script>
-  <script src="particles.min.js"></script>
-  <script src="app.js"></script>
-</body>
-</html><!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title id="pageTitle">Welcome to burn • Detectando token...</title>
-  <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
-  <style>
-    body {font-family: 'Inter', sans-serif;background:#000;color:#fff;margin:0;padding:0;overflow-x:hidden;}
-    .container{max-width:1200px;margin:0 auto;padding:20px;}
-    header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid #333;}
-    .title{display:flex;align-items:center;gap:15px;}
-    .fire-icon{width:60px;height:60px;border-radius:50%;}
-    h1{margin:0;font-size:28px;}
-    .connect-btn{background:#FF6B00;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;}
-    .dev-wallet{text-align:center;margin:20px 0;padding:15px;background:rgba(255,107,0,0.1);border-radius:12px;color:#FF6B00;font-weight:bold;font-size:16px;}
-    .user-tokens{text-align:center;margin:20px 0;padding:15px;background:rgba(255,107,0,0.15);border-radius:12px;color:#FF6B00;font-size:18px;font-weight:bold;}
-    .boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin:40px 0;}
-    .box{background:#111;padding:25px;border-radius:12px;border:1px solid #333;}
-    .center-section{text-align:center;margin:40px 0;}
-    .jackpot{font-size:36px;font-weight:bold;color:#FF6B00;}
-    .timer{font-size:28px;margin:20px 0;color:#FF6B00;}
-    .start-burning{background:#FF0000;color:white;border:none;padding:20px 50px;font-size:24px;border-radius:12px;cursor:pointer;font-weight:bold;}
-    .burn-grid,.winners{margin:50px 0;}
-    h2{text-align:center;color:#FF6B00;}
-    .grid{display:grid;gap:12px;margin-top:20px;}
-    .burn-entry,.winner-entry{background:rgba(255,107,0,0.1);padding:16px;border-radius:12px;border-left:5px solid #FF6B00;font-size:15px;}
-    .winner-entry{color:#FFD700;font-weight:bold;}
-    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);justify-content:center;align-items:center;z-index:1000;}
-    .modal-content{background:#111;padding:40px;border-radius:16px;text-align:center;max-width:400px;width:90%;position:relative;border:2px solid #FF6B00;}
-    .close{position:absolute;top:15px;right:20px;font-size:30px;cursor:pointer;color:#aaa;}
-    .presets{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0;}
-    .presets button{background:#333;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;}
-    input{width:100%;padding:18px;margin:20px 0;border-radius:8px;border:none;background:#222;color:white;font-size:18px;text-align:center;}
-    .burn-btn{background:#FF0000;color:white;border:none;padding:20px;width:100%;font-size:24px;border-radius:12px;cursor:pointer;font-weight:bold;margin:20px 0;}
-    .warning{color:#FF6B00;font-size:14px;}
-  </style>
-</head>
-<body>
-  <div class="container">
-
-    <!-- Header -->
-    <header>
-      <div class="title">
-        <img id="tokenLogo" src="https://i.ibb.co.com/0jZ6g3f/fire.png" alt="Token Logo" class="fire-icon">
-        <div>
-          <h1 id="tokenName">Welcome to burn • Detectando token...</h1>
-          <p>Burn-to-Win Real • Quema tokens y gana SOL cada 20 segundos</p>
-        </div>
-      </div>
-      <button id="connectWallet" class="connect-btn">Connect Wallet</button>
-    </header>
-
-    <!-- Dev Wallet -->
-    <div class="dev-wallet" id="devWalletDisplay">
-      Dev Wallet: Cargando...
-    </div>
-
-    <!-- Tokens del usuario (aparece al conectar) -->
-    <div class="user-tokens" id="userTokensDisplay" style="display:none;">
-      Tienes <strong>0</strong> tokens
-    </div>
-
-    <!-- Info Boxes -->
-    <div class="boxes">
-      <div class="box">
-        <h3>QUEMA REAL</h3>
-        <p>Cualquier usuario quema la cantidad que quiera. El dev nunca quema.</p>
-      </div>
-      <div class="box">
-        <h3>CÓMO FUNCIONA</h3>
-        <ol>
-          <li>Conecta tu wallet</li>
-          <li>Elige cuántos tokens quemar</li>
-          <li>Participas en el sorteo ponderado</li>
-          <li>Cada 20 segundos un ganador recibe 0.01 SOL automático</li>
-        </ol>
-      </div>
-      <div class="box">
-        <h3>PREMIOS AUTOMÁTICOS</h3>
-        <ul>
-          <li>100% on-chain</li>
-          <li>Dev solo cobra fees de pump.fun</li>
-          <li>Todo transparente y verificable</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Jackpot + Timer + Botón QUEMAR -->
-    <div class="center-section">
-      <div class="jackpot">Jackpot Actual: <span id="jackpot">0.0000</span> SOL</div>
-      <div class="timer">Próximo ganador en: <span id="timer">05:00</span></div>
-      <button id="openBurnModal" class="start-burning">QUEMAR TOKENS</button>
-    </div>
-
-    <!-- Burn Grid (holders en vivo) -->
-    <section class="burn-grid">
-      <h2>Burn Grid • Holders en Vivo</h2>
-      <div id="burnList" class="grid">
-        <div class="burn-entry">Cargando holders...</div>
-      </div>
-    </section>
-
-    <!-- Últimos Ganadores -->
-    <section class="winners">
-      <h2>Últimos Ganadores</h2>
-      <div id="winnerList" class="grid">
-        <div class="winner-entry">Primer ganador en camino...</div>
-      </div>
-    </section>
-  </div>
-
-  <!-- MODAL DE QUEMA REAL -->
+  <!-- Burn Modal -->
   <div id="burnModal" class="modal">
     <div class="modal-content">
       <span class="close">×</span>
@@ -268,10 +329,10 @@
     </div>
   </div>
 
-  <!-- Scripts necesarios -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js"></script>
-  <script src="particles.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
