@@ -4,31 +4,49 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title id="pageTitle">Welcome to burn • Detectando token...</title>
-  <link rel="icon" href="https://i.ibb.co.com/0jZ6g3f/fire.png" />
+  <link rel="icon" href="https://i.imgur.com/8f3f8fB.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root { --orange: #FF6B00; --red: #FF0000; --dark: #111; --bg: #000; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; overflow-x:hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; line-height: 1.6; overflow-x: hidden; }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 25px 0; border-bottom: 1px solid #333; }
     .title { display: flex; align-items: center; gap: 18px; }
     .fire-icon { width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--orange); box-shadow: 0 0 20px rgba(255,107,0,0.4); }
     h1 { font-size: 32px; font-weight: 800; background: linear-gradient(90deg, #fff, var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .connect-btn { background: var(--orange); color: white; border: none; padding: 14px 28px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s; }
-    .dev-wallet, .user-tokens { text-align: center; margin: 25px 0; padding: 18px; background: rgba(255,107,0,0.1); border-radius: 16px; color: var(--orange); font-weight: bold; font-size: 17px; }
+    .subtitle { font-size: 16px; opacity: 0.9; margin-top: 4px; }
+    .connect-btn { background: var(--orange); color: white; border: none; padding: 14px 28px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 15px rgba(255,107,0,0.3); }
+    .connect-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,0,0.5); }
+    .dev-wallet, .user-tokens { text-align: center; margin: 25px 0; padding: 18px; background: rgba(255,107,0,0.1); border-radius: 16px; color: var(--orange); font-weight: bold; font-size: 17px; border: 1px solid rgba(255,107,0,0.2); }
     .user-tokens { display: none; background: rgba(255,107,0,0.15); font-size: 20px; }
+    .boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin: 50px 0; }
+    .box { background: var(--dark); padding: 30px; border-radius: 16px; border: 1px solid #333; transition: transform 0.3s; }
+    .box:hover { transform: translateY(-8px); border-color: var(--orange); }
+    .box h3 { color: var(--orange); margin-bottom: 15px; font-size: 20px; }
     .center-section { text-align: center; margin: 60px 0; }
-    .jackpot { font-size: 42px; font-weight: 800; color: var(--orange); }
+    .jackpot { font-size: 42px; font-weight: 800; color: var(--orange); text-shadow: 0 0 20px rgba(255,107,0,0.5); }
     .timer { font-size: 32px; margin: 25px 0; color: var(--orange); font-weight: bold; }
-    .start-burning { background: var(--red); color: white; border: none; padding: 22px 60px; font-size: 28px; border-radius: 16px; cursor: pointer; font-weight: bold; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.97); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: var(--dark); padding: 50px 30px; border-radius: 20px; max-width: 420px; width: 90%; border: 3px solid var(--orange); position: relative; }
-    .close { position: absolute; top: 15px; right: 25px; font-size: 36px; cursor: pointer; color: #aaa; }
-    .presets button { background: #333; color: white; border: none; padding: 14px 22px; border-radius: 12px; margin: 6px; cursor: pointer; font-weight: bold; }
+    .start-burning { background: var(--red); color: white; border: none; padding: 22px 60px; font-size: 28px; border-radius: 16px; cursor: pointer; font-weight: bold; box-shadow: 0 10px 30px rgba(255,0,0,0.4); transition: all 0.3s; }
+    .start-burning:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(255,0,0,0.6); }
+    .burn-grid, .winners { margin: 70px 0; }
+    h2 { text-align: center; color: var(--orange); font-size: 28px; margin-bottom: 30px; text-shadow: 0 0 10px rgba(255,107,0,0.3); }
+    .grid { display: grid; gap: 14px; margin-top: 20px; }
+    .burn-entry, .winner-entry { background: rgba(255,107,0,0.1); padding: 18px; border-radius: 14px; border-left: 6px solid var(--orange); font-size: 16px; transition: all 0.3s; }
+    .burn-entry:hover { background: rgba(255,107,0,0.2); transform: translateX(5px); }
+    .winner-entry { color: #FFD700; font-weight: bold; border-left-color: #FFD700; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.97); justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }
+    .modal-content { background: var(--dark); padding: 50px 30px; border-radius: 20px; text-align: center; max-width: 420px; width: 90%; position: relative; border: 3px solid var(--orange); box-shadow: 0 0 50px rgba(255,107,0,0.3); }
+    .close { position: absolute; top: 15px; right: 25px; font-size: 36px; cursor: pointer; color: #aaa; transition: color 0.3s; }
+    .close:hover { color: var(--red); }
+    .presets { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 25px 0; }
+    .presets button { background: #333; color: white; border: none; padding: 14px 22px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+    .presets button:hover { background: var(--orange); transform: scale(1.05); }
     input { width: 100%; padding: 20px; margin: 20px 0; border-radius: 14px; background: #222; color: white; font-size: 20px; text-align: center; border: none; }
-    .burn-btn { background: var(--red); color: white; border: none; padding: 22px; width: 100%; font-size: 26px; border-radius: 16px; cursor: pointer; font-weight: bold; margin: 25px 0; }
-    .warning { color: var(--orange); font-size: 15px; margin-top: 20px; }
+    .burn-btn { background: var(--red); color: white; border: none; padding: 22px; width: 100%; font-size: 26px; border-radius: 16px; cursor: pointer; font-weight: bold; margin: 25px 0; box-shadow: 0 8px 25px rgba(255,0,0,0.4); }
+    .burn-btn:hover { transform: translateY(-3px); }
+    .warning { color: var(--orange); font-size: 15px; margin-top: 20px; opacity: 0.9; }
+    @media (max-width: 768px) { h1 { font-size: 26px; } .jackpot { font-size: 32px; } .start-burning { font-size: 22px; padding: 18px 40px; } .modal-content { padding: 40px 20px; } }
   </style>
 </head>
 <body>
@@ -47,11 +65,50 @@
     <div class="dev-wallet" id="devWalletDisplay">Dev Wallet: Cargando...</div>
     <div class="user-tokens" id="userTokensDisplay">Tienes <strong id="userBalance">0</strong> tokens</div>
 
+    <div class="boxes">
+      <div class="box">
+        <h3>QUEMA REAL</h3>
+        <p>Cualquier usuario quema la cantidad que quiera. El dev nunca quema. 100% transparente.</p>
+      </div>
+      <div class="box">
+        <h3>CÓMO FUNCIONA</h3>
+        <ol>
+          <li>Conecta tu wallet Phantom</li>
+          <li>Elige cuántos tokens quemar</li>
+          <li>Entras al sorteo ponderado</li>
+          <li>Cada 20 segundos un ganador recibe 0.01 SOL automático</li>
+        </ol>
+      </div>
+      <div class="box">
+        <h3>PREMIOS AUTOMÁTICOS</h3>
+        <ul>
+          <li>100% on-chain</li>
+          <li>Dev solo cobra fees de pump.fun</li>
+          <li>Todo verificable en Solscan</li>
+          <li>Jackpot crece con cada quema</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="center-section">
       <div class="jackpot">Jackpot Actual: <span id="jackpot">0.0000</span> SOL</div>
       <div class="timer">Próximo ganador en: <span id="timer">05:00</span></div>
       <button id="openBurnModal" class="start-burning">QUEMAR TOKENS</button>
     </div>
+
+    <section class="burn-grid">
+      <h2>Burn Grid • Holders en Vivo</h2>
+      <div id="burnList" class="grid">
+        <div class="burn-entry">Cargando holders...</div>
+      </div>
+    </section>
+
+    <section class="winners">
+      <h2>Últimos Ganadores</h2>
+      <div id="winnerList" class="grid">
+        <div class="winner-entry">Primer ganador en camino...</div>
+      </div>
+    </section>
   </div>
 
   <div id="burnModal" class="modal">
@@ -66,144 +123,165 @@
         <button onclick="document.getElementById('customAmount').value='500000'">500K</button>
         <button onclick="document.getElementById('customAmount').value='1000000'">1M</button>
       </div>
-      <input type="number" id="customAmount" placeholder="Cantidad exacta" />
+      <input type="number" id="customAmount" placeholder="Cantidad exacta (ej: 6969)" min="1" step="1" />
       <button id="burnNow" class="burn-btn">QUEMAR & PARTICIPAR</button>
-      <p class="warning">Los tokens serán quemados permanentemente</p>
+      <p class="warning">Los tokens serán quemados permanentemente • Acción irreversible</p>
     </div>
   </div>
 
-  <!-- LIBRERÍAS SOLANA -->
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
-
-  <!-- TODO EL CÓDIGO JS AQUÍ (SIN app.js SEPARADO) -->
+  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.1/lib/index.iife.min.js"></script>
   <script>
     const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
-
-    // RPCs RÁPIDOS
-    const RPCS = ["https://rpc.ankr.com/solana", "https://solana-api.projectserum.com", "https://api.mainnet-beta.solana.com"];
+    const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736";
 
     let userWallet = null;
     let tokenMint = null;
-    let userBalance = 0;
-    let connection = null;
-
-    // ESPERAR QUE CARGUEN LAS LIBRERÍAS
-    async function waitForLibs() {
-      while (!window.solanaWeb3 || !window.splToken) {
-        await new Promise(r => setTimeout(r, 100));
-      }
-      console.log("Librerías Solana cargadas");
-    }
-
-    // CONEXIÓN RÁPIDA
-    async function getConnection() {
-      for (const rpc of RPCS) {
-        try {
-          const conn = new window.solanaWeb3.Connection(rpc);
-          await conn.getSlot();
-          connection = conn;
-          return conn;
-        } catch (e) {}
-      }
-      connection = new window.solanaWeb3.Connection("https://api.mainnet-beta.solana.com");
-      return connection;
-    }
+    let userTokenBalance = 0;
 
     // CONECTAR WALLET
     document.getElementById("connectWallet").onclick = async () => {
       if (!window.solana?.isPhantom) return alert("Instala Phantom Wallet");
+
       try {
         await window.solana.connect();
         userWallet = window.solana.publicKey.toString();
-        document.getElementById("connectWallet").innerText = userWallet.slice(0,6)+"..."+userWallet.slice(-4);
-        await waitForLibs();
-        await getConnection();
-        cargarTodo();
-      } catch (e) { console.log("Cancelado"); }
+        document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
+        console.log("Wallet conectada:", userWallet);
+
+        const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
+        if (tokenData.mint) {
+          tokenMint = tokenData.mint;
+          detectarTokensUsuario();
+        }
+      } catch (err) {
+        console.log("Conexión cancelada");
+      }
     };
 
-    // DETECTAR BALANCE CON REINTENTOS
-    async function updateUserBalance() {
-      if (!userWallet || !tokenMint || !connection) return;
+    // DETECTAR BALANCE
+    async function detectarTokensUsuario() {
+      if (!userWallet || !tokenMint) return;
+
       try {
-        const accounts = await connection.getTokenAccountsByOwner(
-          new window.solanaWeb3.PublicKey(userWallet),
-          { mint: new window.solanaWeb3.PublicKey(tokenMint) }
-        );
-        userBalance = 0;
-        if (accounts.value.length > 0) {
-          userBalance = Number(accounts.value[0].account.data.parsed.info.tokenAmount.uiAmount) || 0;
+        const resp = await fetch(HELIUS_RPC, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0", id: "1",
+            method: "getTokenAccountsByOwner",
+            params: [userWallet, { mint: tokenMint }, { encoding: "jsonParsed" }]
+          })
+        });
+        const data = await resp.json();
+        userTokenBalance = 0;
+
+        if (data.result?.value?.length > 0) {
+          data.result.value.forEach(acc => {
+            const info = acc.account.data.parsed.info;
+            if (info.mint === tokenMint) {
+              userTokenBalance += Number(info.tokenAmount.uiAmount);
+            }
+          });
         }
-        document.getElementById("userBalance").innerText = userBalance.toLocaleString();
-        document.getElementById("userTokensDisplay").style.display = "block";
-      } catch (e) {
-        setTimeout(updateUserBalance, 3000);
+
+        const display = document.getElementById("userTokensDisplay");
+        const tokenSymbol = (await (await fetch(`${BACKEND_URL}/api/token`)).json()).symbol || "TOKEN";
+        display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${tokenSymbol}</strong>`;
+        display.style.display = "block";
+
+      } catch (err) { 
+        console.error("Error detectando balance:", err); 
       }
     }
 
-    // QUEMAR TOKENS (100% FUNCIONAL)
+    // QUEMA REAL
     document.getElementById("burnNow").onclick = async () => {
-      if (!userWallet) return alert("Conecta tu wallet");
-      if (userBalance <= 0) return alert("No tienes tokens");
-      const amount = parseFloat(document.getElementById("customAmount").value);
-      if (!amount || amount > userBalance) return alert("Cantidad inválida");
+      if (!userWallet) return alert("Primero conecta tu wallet");
+      if (!tokenMint) return alert("Token del dev no detectado");
+      if (userTokenBalance <= 0) return alert("No tienes tokens para quemar");
+
+      const input = document.getElementById("customAmount");
+      let amount = parseFloat(input.value);
+      if (!amount || amount <= 0 || amount > userTokenBalance) {
+        return alert(`Cantidad inválida. Tienes: ${userTokenBalance.toLocaleString()}`);
+      }
 
       try {
         alert(`Quemando ${amount.toLocaleString()} tokens...`);
-        const mint = new window.solanaWeb3.PublicKey(tokenMint);
-        const owner = new window.solanaWeb3.PublicKey(userWallet);
-        const ata = await window.splToken.getAssociatedTokenAddress(mint, owner);
 
-        const tx = new window.solanaWeb3.Transaction();
+        const { Connection, PublicKey, Transaction } = solanaWeb3;
+        const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = splToken;
+
+        const connection = new Connection(HELIUS_RPC, "confirmed");
+        const mint = new PublicKey(tokenMint);
+        const owner = new PublicKey(userWallet);
+
+        const ata = await getAssociatedTokenAddress(mint, owner);
         const ataInfo = await connection.getAccountInfo(ata);
+
+        const tx = new Transaction();
         if (!ataInfo) {
-          tx.add(window.splToken.createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
+          tx.add(createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
         }
-        tx.add(window.splToken.createBurnInstruction(
-          ata, mint, owner,
-          BigInt(Math.floor(amount * 1_000_000_000)), // 9 decimales
-          [], window.splToken.TOKEN_PROGRAM_ID
+
+        tx.add(createBurnInstruction(
+          ata,
+          mint,
+          owner,
+          BigInt(Math.floor(amount * Math.pow(10, 9))), // 9 decimales
+          [],
+          TOKEN_PROGRAM_ID
         ));
 
-        tx.feePayer = owner;
+        tx.feePayer = window.solana.publicKey;
         tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
         const signed = await window.solana.signTransaction(tx);
         const sig = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(sig);
+        await connection.confirmTransaction(sig, "confirmed");
 
         alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
-        document.getElementById("customAmount").value = "";
-        updateUserBalance();
+        input.value = "";
+        detectarTokensUsuario();
+
       } catch (err) {
-        alert("Error: " + (err.message || "Transacción cancelada"));
+        console.error(err);
+        alert("Error: " + (err.message || "Transacción rechazada"));
       }
     };
 
-    // CARGAR TODO DESDE BACKEND
+    // CARGAR INFO
     async function cargarTodo() {
       try {
         const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-        if (token.mint) {
-          tokenMint = token.mint;
-          document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol || "TOKEN"}`;
-          document.getElementById("tokenLogo").src = token.image || "https://i.ibb.co.com/0jZ6g3f/fire.png";
+        if (token.name && token.name !== "Detectando...") {
+          document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
+          document.getElementById("pageTitle").textContent = `${token.name} • Burn to Win`;
+          document.getElementById("tokenLogo").src = token.image;
           document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${token.creator.slice(0,6)}...${token.creator.slice(-4)}</strong>`;
-          if (userWallet) updateUserBalance();
+          tokenMint = token.mint;
+          if (userWallet) detectarTokensUsuario();
         }
+
         const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
         document.getElementById("jackpot").innerText = Number(jackpot.jackpot).toFixed(4);
-      } catch (e) {}
+
+        const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
+        document.getElementById("burnList").innerHTML = holders.holders.length > 0
+          ? holders.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
+          : "<div class='burn-entry'>Sé el primero en quemar...</div>";
+
+      } catch (e) { console.log("Cargando datos..."); }
     }
 
     // TIMER
-    let time = 300;
+    let countdown = 300;
     setInterval(() => {
-      time--; if (time <= 0) time = 300;
-      const m = String(Math.floor(time/60)).padStart(2,"0");
-      const s = String(time%60).padStart(2,"0");
-      document.getElementById("timer").innerText = m+":"+s;
+      countdown--; if (countdown <= 0) countdown = 300;
+      const m = String(Math.floor(countdown/60)).padStart(2,"0");
+      const s = String(countdown%60).padStart(2,"0");
+      document.getElementById("timer").innerText = `${m}:${s}`;
     }, 1000);
 
     // MODAL
@@ -211,11 +289,8 @@
     document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
     // INICIAR
-    waitForLibs().then(() => {
-      getConnection();
-      cargarTodo();
-      setInterval(cargarTodo, 10000);
-    });
+    cargarTodo();
+    setInterval(cargarTodo, 8000);
   </script>
 </body>
 </html>
