@@ -1,123 +1,152 @@
-// app.js — QUEMA REAL + 0 ERRORES + FUNCIONA EN VERCEL 100%
+// app.js — FALLBACK A MINT REAL + QUEMA 100% (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
-const RPC = "https://rpc.ankr.com/solana";
-const MINT_FALLBACK = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";
+const FALLBACK_MINT = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";  // Tu mint sdgsdg
+const FALLBACK_SYMBOL = "sdgsdg";
 
 let userWallet = null;
-let tokenMint = MINT_FALLBACK;
-let userBalance = 0;
-let connection = null;
+let tokenMint = FALLBACK_MINT;  // Fallback inmediato
+let userTokenBalance = 0;
 
-// FORZAR QUE LAS LIBRERÍAS ESTÉN CARGADAS
-function waitForLibs() {
-  return new Promise(resolve => {
-    const check = () => {
-      if (window.solanaWeb3 && window.splToken) {
-        console.log("Librerías listas");
-        resolve();
-      } else {
-        setTimeout(check, 50);
-      }
-    };
-    check();
-  });
+// === CONECTAR WALLET ===
+document.getElementById("connectWallet").onclick = async () => {
+  if (!window.solana?.isPhantom) return alert("¡Instala Phantom Wallet!");
+
+  try {
+    await window.solana.connect();
+    userWallet = window.solana.publicKey.toString();
+    document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
+    console.log("Wallet conectada:", userWallet);
+
+    detectarTokensUsuario();  // Usa fallback mint
+  } catch (err) {
+    console.log("Conexión cancelada");
+  }
+};
+
+// === DETECTAR BALANCE ===
+async function detectarTokensUsuario() {
+  if (!userWallet) return;
+
+  try {
+    const resp = await fetch("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: "1",
+        method: "getTokenAccountsByOwner",
+        params: [userWallet, { mint: tokenMint }, { encoding: "jsonParsed" }]
+      })
+    });
+    const data = await resp.json();
+    userTokenBalance = 0;
+
+    if (data.result?.value?.length > 0) {
+      data.result.value.forEach(acc => {
+        const info = acc.account.data.parsed.info;
+        if (info.mint === tokenMint) {
+          userTokenBalance += Number(info.tokenAmount.uiAmount);
+        }
+      });
+    }
+
+    const display = document.getElementById("userTokensDisplay") || crearDisplayTokens();
+    display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${FALLBACK_SYMBOL}</strong>`;
+    display.style.display = "block";
+
+  } catch (err) { 
+    console.error("Error detectando balance:", err); 
+  }
 }
+
+function crearDisplayTokens() {
+  const div = document.createElement("div");
+  div.id = "userTokensDisplay";
+  div.className = "user-tokens";
+  document.querySelector(".dev-wallet").after(div);
+  return div;
+}
+
+// === QUEMA REAL ===
+document.getElementById("burnNow").onclick = async () => {
+  if (!userWallet) return alert("Conecta tu wallet");
+  if (userTokenBalance <= 0) return alert("No tienes tokens");
+
+  const amount = parseFloat(document.getElementById("customAmount").value);
+  if (!amount || amount > userTokenBalance) return alert("Cantidad inválida");
+
+  const { Connection, PublicKey, Transaction } = window.solanaWeb3;
+  const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
+
+  try {
+    alert(`Quemando ${amount.toLocaleString()} $${FALLBACK_SYMBOL}...`);
+
+    const connection = new Connection("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736");
+    const mint = new PublicKey(tokenMint);
+    const owner = new PublicKey(userWallet);
+    const ata = await getAssociatedTokenAddress(mint, owner);
+
+    const tx = new Transaction();
+    const ataInfo = await connection.getAccountInfo(ata);
+    if (!ataInfo) tx.add(createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
+
+    tx.add(createBurnInstruction(
+      ata, mint, owner,
+      BigInt(Math.floor(amount * 1_000_000_000)), // 9 decimales
+      [], TOKEN_PROGRAM_ID
+    ));
+
+    tx.feePayer = owner;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    const signed = await window.solana.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig);
+
+    alert(`¡QUEMADOS ${amount.toLocaleString()} $${FALLBACK_SYMBOL}!\nhttps://solscan.io/tx/${sig}`);
+    document.getElementById("customAmount").value = "";
+    detectarTokensUsuario();
+
+  } catch (err) {
+    console.error(err);
+    alert("Error: " + (err.message || "Transacción rechazada"));
+  }
+};
+
+// === CARGAR INFO ===
+async function cargarTodo() {
+  try {
+    const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
+    if (token.name && token.name !== "Detectando...") {
+      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
+      document.getElementById("tokenLogo").src = token.image;
+      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${token.creator.slice(0,6)}...${token.creator.slice(-4)}</strong>`;
+      tokenMint = token.mint;
+      if (userWallet) detectarTokensUsuario();
+    }
+
+    const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
+    document.getElementById("jackpot").innerText = Number(jackpot.jackpot).toFixed(4);
+
+    const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
+    document.getElementById("burnList").innerHTML = holders.holders.length > 0
+      ? holders.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
+      : "<div class='burn-entry'>Sé el primero en quemar...</div>";
+
+  } catch (e) { console.log("Cargando datos..."); }
+}
+
+// Timer + Modal
+let countdown = 300;
+setInterval(() => {
+  countdown--; if (countdown <= 0) countdown = 300;
+  const m = String(Math.floor(countdown/60)).padStart(2,"0");
+  const s = String(countdown%60).padStart(2,"0");
+  document.getElementById("timer").innerText = `${m}:${s}`;
+}, 1000);
+
+document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
+document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
 
 // INICIAR
-async function init() {
-  await waitForLibs();
-  connection = new window.solanaWeb3.Connection(RPC);
-
-  // Presets
-  document.querySelectorAll('.presets button').forEach(btn => {
-    btn.onclick = () => document.getElementById('customAmount').value = btn.dataset.amount;
-  });
-
-  // Conectar wallet
-  document.getElementById("connectWallet").onclick = async () => {
-    if (!window.solana?.isPhantom) return alert("Instala Phantom");
-    try {
-      await window.solana.connect();
-      userWallet = window.solana.publicKey.toString();
-      document.getElementById("connectWallet").innerText = userWallet.slice(0,6)+"..."+userWallet.slice(-4);
-      cargarToken();
-    } catch (e) { alert("Cancelado"); }
-  };
-
-  // Cargar info del token
-  async function cargarToken() {
-    try {
-      const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-      if (token.mint) tokenMint = token.mint;
-      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol || "sdgsdg"}`;
-      document.getElementById("tokenLogo").src = token.image || "https://i.ibb.co.com/0jZ6g3f/fire.png";
-      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${(token.creator||"").slice(0,6)}...${(token.creator||"").slice(-4)}</strong>`;
-      if (userWallet) updateBalance();
-    } catch (e) { setTimeout(cargarToken, 5000); }
-  }
-
-  // Balance
-  window.updateBalance = async () => {
-    if (!userWallet) return;
-    try {
-      const accounts = await connection.getTokenAccountsByOwner(
-        new window.solanaWeb3.PublicKey(userWallet),
-        { mint: new window.solanaWeb3.PublicKey(tokenMint) }
-      );
-      userBalance = accounts.value.length > 0 
-        ? Number(accounts.value[0].account.data.parsed.info.tokenAmount.uiAmount) || 0 
-        : 0;
-      document.getElementById("userBalance").innerText = userBalance.toLocaleString();
-      document.getElementById("userTokensDisplay").style.display = "block";
-    } catch (e) { setTimeout(updateBalance, 3000); }
-  };
-
-  // QUEMAR
-  document.getElementById("burnNow").onclick = async () => {
-    if (!userWallet) return alert("Conecta tu wallet");
-    const amount = parseFloat(document.getElementById("customAmount").value);
-    if (!amount || amount > userBalance) return alert("Cantidad inválida");
-
-    try {
-      const mint = new window.solanaWeb3.PublicKey(tokenMint);
-      const owner = new window.solanaWeb3.PublicKey(userWallet);
-      const ata = await window.splToken.getAssociatedTokenAddress(mint, owner);
-
-      const tx = new window.solanaWeb3.Transaction();
-      if (!await connection.getAccountInfo(ata)) {
-        tx.add(window.splToken.createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
-      }
-      tx.add(window.splToken.createBurnInstruction(ata, mint, owner, BigInt(amount * 1_000_000_000), [], window.splToken.TOKEN_PROGRAM_ID));
-
-      tx.feePayer = owner;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-      const signed = await window.solana.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(sig);
-
-      alert(`QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
-      document.getElementById("customAmount").value = "";
-      updateBalance();
-    } catch (err) {
-      alert("Error: " + (err.message || "Cancelado"));
-    }
-  };
-
-  // Modal + Timer
-  document.getElementById("openBurnModal").onclick = () => document.getElementById("burnModal").style.display = "flex";
-  document.querySelector(".close").onclick = () => document.getElementById("burnModal").style.display = "none";
-
-  let time = 300;
-  setInterval(() => {
-    time--; if (time <= 0) time = 300;
-    const m = String(Math.floor(time/60)).padStart(2,"0");
-    const s = String(time%60).padStart(2,"0");
-    document.getElementById("timer").innerText = m + ":" + s;
-  }, 1000);
-
-  cargarToken();
-  setInterval(cargarToken, 10000);
-}
-
-init();
+cargarTodo();
+setInterval(cargarTodo, 8000);
