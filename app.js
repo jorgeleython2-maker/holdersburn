@@ -1,4 +1,4 @@
-// app.js — FALLBACK + REINTENTOS + QUEMA 100% (NOV 2025)
+// app.js — FALLBACK A MINT REAL + QUEMA 100% (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
 const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736";
 const FALLBACK_MINT = "E1kjpery9wkprYe9phhwSHKtCmQwMNaoy6soa3Wfpump";  // Tu mint sdgsdg
@@ -95,7 +95,7 @@ async function detectarTokensUsuario() {
     }
 
     const display = document.getElementById("userTokensDisplay") || crearDisplayTokens();
-    display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} tokens</strong>`;
+    display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${FALLBACK_SYMBOL}</strong>`;
     display.style.display = "block";
 
     // Reintenta si balance es 0 (indexación lenta)
@@ -130,7 +130,7 @@ document.getElementById("burnNow").onclick = async () => {
   const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
 
   try {
-    alert(`Quemando ${amount.toLocaleString()} tokens...`);
+    alert(`Quemando ${amount.toLocaleString()} $${FALLBACK_SYMBOL}...`);
 
     const connection = new Connection("https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736");
     const mint = new PublicKey(tokenMint);
@@ -154,7 +154,7 @@ document.getElementById("burnNow").onclick = async () => {
     const sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig);
 
-    alert(`¡QUEMADOS ${amount.toLocaleString()} TOKENS!\nhttps://solscan.io/tx/${sig}`);
+    alert(`¡QUEMADOS ${amount.toLocaleString()} $${FALLBACK_SYMBOL}!\nhttps://solscan.io/tx/${sig}`);
     document.getElementById("customAmount").value = "";
     detectarTokensUsuario();
 
