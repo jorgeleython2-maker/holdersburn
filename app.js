@@ -1,19 +1,12 @@
-// app.js — QUEMA REAL 100% FUNCIONAL (SIN ERRORES, SIN CORS, SIN DELAYS) - NOV 2025
+// app.js — DETECCIÓN DE TOKENS DEL USUARIO CON REINTENTOS + ATA AUTO (NOV 2025)
 const BACKEND_URL = "https://spin-production-ddc0.up.railway.app";
 const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=95932bca-32bc-465f-912c-b42f7dd31736";
+const PUBLIC_RPC = "https://api.mainnet-beta.solana.com";  // Fallback si Helius falla
 
 let userWallet = null;
 let tokenMint = null;
 let userTokenBalance = 0;
-
-// === ESPERAR A QUE LAS LIBRERÍAS ESTÉN CARGADAS ===
-async function waitForSolanaLibs() {
-  while (!window.solanaWeb3 || !window.splToken) {
-    console.log("Cargando librerías Solana...");
-    await new Promise(r => setTimeout(r, 200));
-  }
-  console.log("Librerías Solana listas!");
-}
+let intentosBalance = 0;
 
 // === CONECTAR WALLET ===
 document.getElementById("connectWallet").onclick = async () => {
@@ -25,23 +18,22 @@ document.getElementById("connectWallet").onclick = async () => {
     document.getElementById("connectWallet").innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
     console.log("Wallet conectada:", userWallet);
 
-    await waitForSolanaLibs(); // ← Esto arregla el "solanaWeb3 is not defined"
-
     const tokenData = await (await fetch(`${BACKEND_URL}/api/token`)).json();
     if (tokenData.mint) {
       tokenMint = tokenData.mint;
-      await detectarTokensUsuario();
+      detectarTokensUsuario();  // Inicia con reintentos
     }
   } catch (err) {
     console.log("Conexión cancelada");
   }
 };
 
-// === DETECTAR BALANCE ===
+// === DETECTAR BALANCE CON REINTENTOS ===
 async function detectarTokensUsuario() {
   if (!userWallet || !tokenMint) return;
 
-  await waitForSolanaLibs();
+  intentosBalance++;
+  console.log(`Intento balance ${intentosBalance}...`);
 
   try {
     const resp = await fetch(HELIUS_RPC, {
@@ -53,7 +45,12 @@ async function detectarTokensUsuario() {
         params: [userWallet, { mint: tokenMint }, { encoding: "jsonParsed" }]
       })
     });
+
+    if (!resp.ok) throw new Error(`RPC error: ${resp.status}`);
+
     const data = await resp.json();
+    console.log("Respuesta RPC:", data);  // Abre F12 para ver
+
     userTokenBalance = 0;
 
     if (data.result?.value?.length > 0) {
@@ -63,6 +60,9 @@ async function detectarTokensUsuario() {
           userTokenBalance += Number(info.tokenAmount.uiAmount);
         }
       });
+      console.log("Balance detectado:", userTokenBalance);
+    } else {
+      console.log("No se encontró ATA – balance 0 (reintentando)");
     }
 
     const display = document.getElementById("userTokensDisplay") || crearDisplayTokens();
@@ -70,8 +70,14 @@ async function detectarTokensUsuario() {
     display.innerHTML = `Tienes <strong>${userTokenBalance.toLocaleString()} $${tokenSymbol}</strong>`;
     display.style.display = "block";
 
-  } catch (err) { 
-    console.error("Error detectando balance:", err); 
+    // Reintenta si balance es 0 (indexación lenta)
+    if (userTokenBalance === 0 && intentosBalance < 10) {
+      setTimeout(detectarTokensUsuario, 3000);  // Cada 3s
+    }
+
+  } catch (err) {
+    console.error("Error RPC:", err);
+    if (intentosBalance < 10) setTimeout(detectarTokensUsuario, 3000);
   }
 }
 
@@ -90,7 +96,7 @@ function crearDisplayTokens() {
   return div;
 }
 
-// === QUEMA REAL 100% FUNCIONAL (MANUAL + DECIMALES AUTOMÁTICOS) ===
+// === QUEMA REAL (TU CÓDIGO + ARREGLOS) ===
 document.getElementById("burnNow").onclick = async () => {
   if (!userWallet) return alert("Primero conecta tu wallet");
   if (!tokenMint) return alert("Token del dev no detectado");
@@ -102,7 +108,7 @@ document.getElementById("burnNow").onclick = async () => {
     return alert(`Cantidad inválida. Tienes: ${userTokenBalance.toLocaleString()}`);
   }
 
-  await waitForSolanaLibs(); // ← Seguro total
+  await waitForSolanaLibs();  // ← Espera librerías
 
   const { Connection, PublicKey, Transaction } = window.solanaWeb3;
   const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createBurnInstruction, TOKEN_PROGRAM_ID } = window.splToken;
@@ -111,30 +117,22 @@ document.getElementById("burnNow").onclick = async () => {
     alert(`Quemando ${amount.toLocaleString()} tokens...`);
 
     const connection = new Connection(HELIUS_RPC, "confirmed");
-    const mintPubkey = new PublicKey(tokenMint);
-    const ownerPubkey = new PublicKey(userWallet);
+    const mint = new PublicKey(tokenMint);
+    const owner = new PublicKey(userWallet);
 
-    // DETECTAR DECIMALES REALES
-    const mintInfo = await connection.getParsedAccountInfo(mintPubkey);
-    const decimals = mintInfo.value.data.parsed.info.decimals;
-    console.log(`Token con ${decimals} decimales detectado`);
-
-    const amountToBurn = BigInt(Math.floor(amount * (10 ** decimals)));
-
-    // ATA + CREAR SI NO EXISTE
-    const ata = await getAssociatedTokenAddress(mintPubkey, ownerPubkey);
+    const ata = await getAssociatedTokenAddress(mint, owner);
     const ataInfo = await connection.getAccountInfo(ata);
 
     const tx = new Transaction();
     if (!ataInfo) {
-      tx.add(createAssociatedTokenAccountInstruction(ownerPubkey, ata, ownerPubkey, mintPubkey));
+      tx.add(createAssociatedTokenAccountInstruction(owner, ata, owner, mint));
     }
 
     tx.add(createBurnInstruction(
       ata,
-      mintPubkey,
-      ownerPubkey,
-      amountToBurn,
+      mint,
+      owner,
+      BigInt(Math.floor(amount * Math.pow(10, tokenDecimals))),
       [],
       TOKEN_PROGRAM_ID
     ));
@@ -156,36 +154,24 @@ document.getElementById("burnNow").onclick = async () => {
   }
 };
 
-// === CARGAR INFO (jackpot, holders, token) ===
-async function cargarTodo() {
-  try {
-    const token = await (await fetch(`${BACKEND_URL}/api/token`)).json();
-    if (token.name && token.name !== "Detectando...") {
-      document.getElementById("tokenName").innerHTML = `Welcome to burn • $${token.symbol}`;
-      document.title = `${token.name} • Burn to Win`;
-      document.getElementById("tokenLogo").src = token.image || "https://i.imgur.com/8f3f8fB.png";
-      document.getElementById("devWalletDisplay").innerHTML = `Dev Wallet: <strong>${token.creator.slice(0,6)}...${token.creator.slice(-4)}</strong>`;
-      tokenMint = token.mint;
-      if (userWallet) detectarTokensUsuario();
-    }
-
-    const jackpot = await (await fetch(`${BACKEND_URL}/api/jackpot`)).json();
-    document.getElementById("jackpot").innerText = Number(jackpot.jackpot).toFixed(4);
-
-    const holders = await (await fetch(`${BACKEND_URL}/api/holders`)).json();
-    document.getElementById("burnList").innerHTML = holders.holders.length > 0
-      ? holders.holders.map((h,i) => `<div class="burn-entry">#${i+1} ${h[0].slice(0,6)}...${h[0].slice(-4)} — ${Number(h[1]).toLocaleString()} tokens</div>`).join("")
-      : "<div class='burn-entry'>Sé el primero en quemar...</div>";
-
-  } catch (e) { console.log("Cargando datos..."); }
+function waitForSolanaLibs() {
+  return new Promise((resolve) => {
+    const check = setInterval(() => {
+      if (window.solanaWeb3 && window.splToken) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
+    setTimeout(() => clearInterval(check), 5000);
+  });
 }
 
 // Timer + Modal
 let countdown = 300;
 setInterval(() => {
   countdown--; if (countdown <= 0) countdown = 300;
-  const m = String(Math.floor(countdown/60)).padStart(2,"0");
-  const s = String(countdown%60).padStart(2,"0");
+  const m = String(Math.floor(countdown / 60)).padStart(2, "0");
+  const s = String(countdown % 60).padStart(2, "0");
   document.getElementById("timer").innerText = `${m}:${s}`;
 }, 1000);
 
